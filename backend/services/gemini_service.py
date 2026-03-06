@@ -18,6 +18,8 @@ _client = None
 def _get_client():
     global _client
     if _client is None:
+        if not settings.google_api_key:
+            raise ValueError("GEMINI_API_KEY environment variable is not set")
         _client = genai.Client(api_key=settings.google_api_key)
     return _client
 

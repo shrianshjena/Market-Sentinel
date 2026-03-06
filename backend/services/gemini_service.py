@@ -9,8 +9,9 @@ from config import settings
 from models.schemas import HistoricalPoint
 from typing import List
 
-# Model priority list - tries each in order if rate-limited
-MODELS = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-2.0-flash-lite"]
+# Model priority list - gemini-2.5-flash has a 20 requests/day limit on free tier, 
+# while other models may be completely restricted (0 limit) on the free tier.
+MODELS = ["gemini-2.5-flash", "gemini-flash-latest", "gemini-2.0-flash"]
 
 _client = None
 

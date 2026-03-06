@@ -1,0 +1,6 @@
+fastapi
+pydantic-settings
+python-dotenv
+nselib
+pandas
+google-genai

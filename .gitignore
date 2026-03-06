@@ -1,0 +1,25 @@
+# Dependencies
+node_modules/
+frontend/node_modules/
+
+# Python
+backend/venv/
+backend/__pycache__/
+backend/**/__pycache__/
+*.pyc
+*.pyo
+
+# Environment
+.env
+backend/.env
+frontend/.env
+
+# Credentials
+backend/credentials/*.json
+
+# IDE
+.vscode/
+.idea/
+
+# Build
+frontend/dist/

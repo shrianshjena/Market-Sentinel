@@ -80,9 +80,6 @@ IMPORTANT: Respond ONLY with the JSON object. No markdown code fences, no explan
                 response = client.models.generate_content(
                     model=model_name,
                     contents=prompt,
-                    config=types.GenerateContentConfig(
-                        tools=[types.Tool(google_search=types.GoogleSearch())],
-                    ),
                 )
                 return _parse_response(response.text)
             except Exception as e:

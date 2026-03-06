@@ -2,7 +2,7 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    google_api_key: str = ""
+    gemini_api_key: str = ""
 
     # Featured tickers shown on the landing page
     FEATURED_TICKERS: list = ["TATASTEEL", "COALINDIA", "NATIONALUM"]

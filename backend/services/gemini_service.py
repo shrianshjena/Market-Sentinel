@@ -18,9 +18,9 @@ _client = None
 def _get_client():
     global _client
     if _client is None:
-        if not settings.google_api_key:
+        if not settings.gemini_api_key:
             raise ValueError("GEMINI_API_KEY environment variable is not set")
-        _client = genai.Client(api_key=settings.google_api_key)
+        _client = genai.Client(api_key=settings.gemini_api_key)
     return _client
 
 
@@ -67,7 +67,11 @@ Provide your analysis in the following STRICT JSON format (no markdown, no extra
 
 IMPORTANT: Respond ONLY with the JSON object. No markdown code fences, no explanatory text."""
 
-    client = _get_client()
+    try:
+        client = _get_client()
+    except ValueError as e:
+        print(f"Skipping Gemini analysis: {e}")
+        return _fallback_analysis()
 
     # Try each model in priority order; retry once on rate limit
     for model_name in MODELS:

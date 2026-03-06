@@ -1,6 +1,5 @@
 fastapi
 pydantic-settings
 python-dotenv
-nselib
-pandas
+httpx
 google-genai

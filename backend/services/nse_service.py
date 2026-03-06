@@ -1,33 +1,13 @@
-from datetime import date, timedelta, datetime
+import httpx
+from datetime import datetime
 from typing import List, Tuple
-
-from nselib import capital_market
 
 from models.schemas import HistoricalPoint
 
 
-def _parse_price(value) -> float:
-    """Parse price value, handling comma-separated numbers like '1,389.40'."""
-    if isinstance(value, (int, float)):
-        return float(value)
-    if isinstance(value, str):
-        return float(value.replace(",", ""))
-    return float(value)
-
-
-def _parse_date(value: str) -> str:
-    """Convert NSE date format (dd-Mon-yyyy) to ISO format (yyyy-mm-dd)."""
-    for fmt in ("%d-%b-%Y", "%d-%m-%Y", "%Y-%m-%d"):
-        try:
-            return datetime.strptime(value, fmt).strftime("%Y-%m-%d")
-        except (ValueError, TypeError):
-            continue
-    return str(value)
-
-
 def fetch_stock_data(symbol: str) -> Tuple[float, List[HistoricalPoint]]:
     """
-    Fetch current price and 90-day historical data directly from NSE India.
+    Fetch current price and ~90-day historical data from Yahoo Finance.
 
     Args:
         symbol: NSE stock symbol (e.g., 'TATASTEEL', 'RELIANCE', 'HDFCBANK')
@@ -35,34 +15,44 @@ def fetch_stock_data(symbol: str) -> Tuple[float, List[HistoricalPoint]]:
     Returns:
         Tuple of (current_price, list of HistoricalPoint sorted oldest-first)
     """
-    end_date = date.today()
-    start_date = end_date - timedelta(days=100)  # Fetch extra to account for holidays
-
-    df = capital_market.price_volume_and_deliverable_position_data(
-        symbol=symbol.upper(),
-        from_date=start_date.strftime("%d-%m-%Y"),
-        to_date=end_date.strftime("%d-%m-%Y"),
-    )
-
-    if df is None or df.empty:
-        raise ValueError(f"No data returned from NSE for symbol '{symbol}'")
-
+    # Append .NS for NSE stocks on Yahoo Finance
+    yf_symbol = f"{symbol.upper()}.NS"
+    url = f"https://query1.finance.yahoo.com/v8/finance/chart/{yf_symbol}?range=100d&interval=1d"
+    
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    }
+    
+    with httpx.Client() as client:
+        response = client.get(url, headers=headers)
+        
+        if response.status_code != 200:
+            raise ValueError(f"Failed to fetch data for symbol '{symbol}' from Yahoo Finance: HTTP {response.status_code}")
+            
+        data = response.json()
+        
+    result = data.get("chart", {}).get("result", [])
+    if not result:
+        raise ValueError(f"No data returned for symbol '{symbol}'")
+        
+    timestamps = result[0].get("timestamp", [])
+    indicators = result[0].get("indicators", {}).get("quote", [{}])[0]
+    close_prices = indicators.get("close", [])
+    
+    if not timestamps or not close_prices:
+        raise ValueError(f"Incomplete data returned for symbol '{symbol}'")
+        
     historical: List[HistoricalPoint] = []
-    for _, row in df.iterrows():
-        try:
-            date_str = _parse_date(str(row["Date"]))
-            close_price = _parse_price(row["ClosePrice"])
-            historical.append(HistoricalPoint(date=date_str, close=close_price))
-        except (ValueError, TypeError, KeyError):
-            continue
-
-    # NSE returns newest-first; reverse to oldest-first for charting
-    historical.reverse()
-
-    # Trim to ~90 trading days
+    
+    for ts, close in zip(timestamps, close_prices):
+        if close is not None:
+            # Convert timestamp to YYYY-MM-DD
+            date_str = datetime.fromtimestamp(ts).strftime("%Y-%m-%d")
+            historical.append(HistoricalPoint(date=date_str, close=float(close)))
+            
+    # We requested 100d, return up to 90 valid trading days
     historical = historical[-90:]
-
-    # Current price is the most recent close
+    
     current_price = historical[-1].close if historical else 0.0
-
+    
     return current_price, historical

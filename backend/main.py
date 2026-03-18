@@ -22,7 +22,7 @@ async def analyze(ticker: str):
     ticker = ticker.upper()
 
     try:
-        # Step 1: Fetch 1-year price data from NSE India and live news
+        # Step 1: Fetch 5-year price data from NSE India and live news
         current_price, historical = fetch_stock_data(ticker)
         news_context = fetch_stock_news(ticker)
 
@@ -49,7 +49,7 @@ async def analyze(ticker: str):
         return StockAnalysisResponse.build(
             ticker=ticker,
             current_price=current_price,
-            historical_1y=historical,
+            historical_5y=historical,
             analysis=analysis,
         )
 

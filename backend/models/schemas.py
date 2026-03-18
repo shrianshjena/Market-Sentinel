@@ -28,7 +28,7 @@ class StockAnalysisResponse(BaseModel):
         cls,
         ticker: str,
         current_price: float,
-        historical_1y: List[HistoricalPoint],
+        historical_5y: List[HistoricalPoint],
         analysis: Analysis,
     ):
         return cls(
@@ -36,7 +36,7 @@ class StockAnalysisResponse(BaseModel):
             data={
                 "ticker": ticker,
                 "current_price": current_price,
-                "historical_1y": [h.model_dump() for h in historical_1y],
+                "historical_5y": [h.model_dump() for h in historical_5y],
                 "analysis": analysis.model_dump(),
             },
         )

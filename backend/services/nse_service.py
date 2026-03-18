@@ -9,7 +9,7 @@ from models.schemas import HistoricalPoint
 
 def fetch_stock_data(symbol: str) -> Tuple[float, List[HistoricalPoint]]:
     """
-    Fetch 1-year of daily stock data from Yahoo Finance.
+    Fetch 5-years of daily stock data from Yahoo Finance.
     """
     # Ticker cleanup & Mapping
     symbol = symbol.strip().upper()
@@ -23,7 +23,7 @@ def fetch_stock_data(symbol: str) -> Tuple[float, List[HistoricalPoint]]:
         yf_symbol = f"{symbol}.NS"
     else:
         yf_symbol = symbol
-    url = f"https://query1.finance.yahoo.com/v8/finance/chart/{yf_symbol}?range=1y&interval=1d"
+    url = f"https://query1.finance.yahoo.com/v8/finance/chart/{yf_symbol}?range=5y&interval=1d"
     
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
@@ -56,7 +56,7 @@ def fetch_stock_data(symbol: str) -> Tuple[float, List[HistoricalPoint]]:
             date_str = datetime.fromtimestamp(ts).strftime("%Y-%m-%d")
             historical.append(HistoricalPoint(date=date_str, close=float(close)))
             
-    # Return all valid trading days in the recent 1y period
+    # Return all valid trading days in the recent 5y period
     current_price = historical[-1].close if historical else 0.0
     
     return current_price, historical

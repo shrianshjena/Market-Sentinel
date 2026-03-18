@@ -42,10 +42,10 @@ Analyze the stock {ticker} listed on NSE based on the following data:
 RECENT NEWS HEADLINES (Latest 2026 Context):
 {news_text}
 
-HISTORICAL PRICE DATA (1-year window):
+HISTORICAL PRICE DATA (5-year window):
 - Current Price: INR {current_price:.2f}
-- 1-Year Price Range: INR {price_min:.2f} to INR {price_max:.2f}
-- 1-Year Return: {pct_change:+.2f}%
+- 5-Year Price Range: INR {price_min:.2f} to INR {price_max:.2f}
+- 5-Year Return: {pct_change:+.2f}%
 - Recent 5-day prices: {[round(p, 2) for p in last_5]}
 - Total data points: {len(prices)}
 
@@ -54,7 +54,7 @@ Provide your analysis in the following STRICT JSON format (no markdown code bloc
 {{
   "company_details": "1-2 sentences on what the company does and its sector position.",
   "overall_context": "2-3 sentences on the broader market conditions or macroeconomic factors impacting this stock.",
-  "trend_summary": "2-3 sentence analysis of the 1-year price trend. Is it in recovery, consolidation, or downtrend?",
+  "trend_summary": "2-3 sentence analysis of the 5-year price trend. Is it in recovery, consolidation, or downtrend?",
   "headline_impact": "2-3 sentences analyzing the provided RECENT NEWS HEADLINES and how they affect the stock outlook.",
   "market_sentiment": "1-2 sentences detailing how institutional and retail investors are perceiving the stock based on the news.",
   "sentiment_consistency": "1-2 sentences on whether market sentiment is consistently bullish, bearish, or mixed.",

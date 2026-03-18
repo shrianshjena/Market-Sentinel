@@ -49,7 +49,7 @@ async def analyze(ticker: str):
         return StockAnalysisResponse.build(
             ticker=ticker,
             current_price=current_price,
-            historical_1y=historical,
+            historical_5y=historical,
             analysis=analysis,
         )
 

@@ -52,8 +52,8 @@ export default function ScoreExplanationModal() {
                   Price Trend <span className="text-xs px-2 py-0.5 rounded-full bg-white/10 text-white/70">40% Weight</span>
                 </h3>
                 <p className="text-sm text-white/40 mt-1 leading-relaxed">
-                  Evaluates the absolute historical momentum across the past 1 year of trading sessions. 
-                  High scores require significant, sustained bullish catalysts (+50% returns map to absolute 100/100).
+                  Evaluates the absolute historical momentum across the past 5 years of trading sessions. 
+                  High scores require significant, sustained bullish catalysts (+150% returns map to absolute 100/100).
                 </p>
               </div>
             </div>
@@ -67,7 +67,7 @@ export default function ScoreExplanationModal() {
                   Sentiment Consistency <span className="text-xs px-2 py-0.5 rounded-full bg-white/10 text-white/70">20% Weight</span>
                 </h3>
                 <p className="text-sm text-white/40 mt-1 leading-relaxed">
-                  Quantifies the overall retail and institutional mood interpreted natively by mapping Llama 3 analysis structure. Distinguishes between scattered opinions and consistently strong psychological conviction.
+                  Quantifies the overall retail and institutional mood interpreted natively by mapping our AI analysis structure. Distinguishes between scattered opinions and consistently strong psychological conviction.
                 </p>
               </div>
             </div>
@@ -95,7 +95,7 @@ export default function ScoreExplanationModal() {
                   Macro & Sector Context <span className="text-xs px-2 py-0.5 rounded-full bg-white/10 text-white/70">20% Weight</span>
                 </h3>
                 <p className="text-sm text-white/40 mt-1 leading-relaxed">
-                  Contextualizes the specific equity within broader economic machinery (e.g. US Fed rate expectations, inflation, or government policy shifts) to determine macro-safety.
+                  Contextualizes the specific equity within broader economic machinery (e.g. RBI rate expectations, inflation, or government policy shifts) to determine macro-safety.
                 </p>
               </div>
             </div>

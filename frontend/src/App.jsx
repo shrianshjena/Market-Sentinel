@@ -31,7 +31,7 @@ function App() {
                 Stock Sentinel.
               </h2>
               <p className="text-lg text-white/40 mt-4 max-w-md leading-relaxed">
-                Analyze 90 Days. Understand Sentiment.
+                Analyze 1 Year. Understand Sentiment.
                 <br />
                 AI-Driven Equity Research.
               </p>

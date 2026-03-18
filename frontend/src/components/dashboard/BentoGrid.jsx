@@ -17,7 +17,7 @@ export default function BentoGrid() {
 
   if (!stockData) return null
 
-  const { current_price, historical_90d, analysis } = stockData
+  const { current_price, historical_1y, analysis } = stockData
   const tickerLabel = getTicker3DConfig(selectedTicker).label
 
   return (
@@ -59,7 +59,7 @@ export default function BentoGrid() {
 
         {/* Row 2: Chart + Info */}
         <div className="md:col-span-2">
-          <SparklineChart data={historical_90d} ticker={selectedTicker} />
+          <SparklineChart data={historical_1y} ticker={selectedTicker} />
         </div>
 
         <GlassPanel className="p-6 flex flex-col justify-center gap-4">
@@ -84,7 +84,7 @@ export default function BentoGrid() {
               Data Points
             </h4>
             <p className="text-white/80 text-sm font-medium">
-              {historical_90d?.length || 0} trading days
+              {historical_1y?.length || 0} trading days
             </p>
           </div>
         </GlassPanel>

@@ -1,11 +1,14 @@
 import { motion } from 'framer-motion'
-import { TrendingUp, Newspaper, MessageSquare, Target } from 'lucide-react'
+import { TrendingUp, Newspaper, MessageSquare, Target, Building2, Globe2, Activity } from 'lucide-react'
 import GlassPanel from '../layout/GlassPanel'
 
 const sections = [
+  { key: 'company_details', label: 'Company Overview', icon: Building2 },
+  { key: 'overall_context', label: 'Macro Context', icon: Globe2 },
   { key: 'trend_summary', label: 'Trend Analysis', icon: TrendingUp },
   { key: 'headline_impact', label: 'Headline Pulse', icon: Newspaper },
-  { key: 'sentiment_consistency', label: 'Sentiment', icon: MessageSquare },
+  { key: 'market_sentiment', label: 'Market Sentiment', icon: Activity },
+  { key: 'sentiment_consistency', label: 'Sentiment Consistency', icon: MessageSquare },
   { key: 'recommendation', label: 'Recommendation', icon: Target },
 ]
 

@@ -10,9 +10,11 @@ export default function StockScene() {
   const { selectedTicker, setTicker } = useStockStore()
 
   const positions = [
-    [0, 1.2, 0],     // TATASTEEL - top
+    [0, 1.2, 0],       // TATASTEEL - top
     [1.2, -0.2, -0.5], // COALINDIA - middle right
     [-0.8, -1.5, -1],  // NALCO - bottom left
+    [1.6, 1.3, -1.2],  // HINDZINC - top right
+    [-1.4, 0.4, -0.8], // HINDCOPPER - middle left
   ]
 
   return (

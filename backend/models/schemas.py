@@ -10,9 +10,12 @@ class HistoricalPoint(BaseModel):
 class Analysis(BaseModel):
     sentinel_score: int
     score_category: str
+    company_details: str
     trend_summary: str
     headline_impact: str
+    market_sentiment: str
     sentiment_consistency: str
+    overall_context: str
     recommendation: str
 
 
@@ -25,7 +28,7 @@ class StockAnalysisResponse(BaseModel):
         cls,
         ticker: str,
         current_price: float,
-        historical_90d: List[HistoricalPoint],
+        historical_1y: List[HistoricalPoint],
         analysis: Analysis,
     ):
         return cls(
@@ -33,7 +36,7 @@ class StockAnalysisResponse(BaseModel):
             data={
                 "ticker": ticker,
                 "current_price": current_price,
-                "historical_90d": [h.model_dump() for h in historical_90d],
+                "historical_1y": [h.model_dump() for h in historical_1y],
                 "analysis": analysis.model_dump(),
             },
         )

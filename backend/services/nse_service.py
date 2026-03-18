@@ -17,7 +17,7 @@ def fetch_stock_data(symbol: str) -> Tuple[float, List[HistoricalPoint]]:
     """
     # Append .NS for NSE stocks on Yahoo Finance
     yf_symbol = f"{symbol.upper()}.NS"
-    url = f"https://query1.finance.yahoo.com/v8/finance/chart/{yf_symbol}?range=100d&interval=1d"
+    url = f"https://query1.finance.yahoo.com/v8/finance/chart/{yf_symbol}?range=1y&interval=1d"
     
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
@@ -50,9 +50,7 @@ def fetch_stock_data(symbol: str) -> Tuple[float, List[HistoricalPoint]]:
             date_str = datetime.fromtimestamp(ts).strftime("%Y-%m-%d")
             historical.append(HistoricalPoint(date=date_str, close=float(close)))
             
-    # We requested 100d, return up to 90 valid trading days
-    historical = historical[-90:]
-    
+    # Return all valid trading days in the recent 1y period
     current_price = historical[-1].close if historical else 0.0
     
     return current_price, historical

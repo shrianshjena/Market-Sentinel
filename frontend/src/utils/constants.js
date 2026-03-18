@@ -1,5 +1,5 @@
 // Featured tickers displayed as 3D containers on the landing page
-export const FEATURED_TICKERS = ['TATASTEEL', 'COALINDIA', 'NATIONALUM']
+export const FEATURED_TICKERS = ['TATASTEEL', 'COALINDIA', 'NATIONALUM', 'HINDZINC', 'HINDCOPPER']
 
 // Visual config for featured tickers (3D materials)
 export const TICKER_3D_CONFIG = {
@@ -26,6 +26,22 @@ export const TICKER_3D_CONFIG = {
     metalness: 0.95,
     roughness: 0.1,
     description: 'Aluminium',
+  },
+  HINDZINC: {
+    label: 'Hindustan Zinc',
+    color: '#E2E8F0',
+    emissive: '#5f6f7f',
+    metalness: 0.85,
+    roughness: 0.2,
+    description: 'Zinc & Metals',
+  },
+  HINDCOPPER: {
+    label: 'Hindustan Copper',
+    color: '#B87333',
+    emissive: '#8a4b1c',
+    metalness: 0.9,
+    roughness: 0.25,
+    description: 'Copper & Mining',
   },
 }
 

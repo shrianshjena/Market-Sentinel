@@ -23,7 +23,7 @@ export default function SparklineChart({ data }) {
     <GlassPanel className="p-6">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-white/50 text-xs uppercase tracking-wider font-medium">
-          90-Day Performance
+          1-Year Performance
         </h3>
         <motion.span
           initial={{ opacity: 0 }}

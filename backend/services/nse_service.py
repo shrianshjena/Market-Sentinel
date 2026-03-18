@@ -11,13 +11,8 @@ def fetch_stock_data(symbol: str) -> Tuple[float, List[HistoricalPoint]]:
     """
     Fetch 5-years of daily stock data from Yahoo Finance.
     """
-    # Ticker cleanup & Mapping
+    # Ticker cleanup
     symbol = symbol.strip().upper()
-    
-    symbol_map = {
-        "NALCO": "NATIONALUM"
-    }
-    symbol = symbol_map.get(symbol, symbol)
     
     if not symbol.endswith('.NS') and not symbol.endswith('.BO'):
         yf_symbol = f"{symbol}.NS"
@@ -85,15 +80,6 @@ def fetch_stock_news(symbol: str) -> List[str]:
     """
     search_query = f"{symbol}+stock+India"
     headlines = []
-    
-    if symbol == "NALCO" or symbol == "NATIONALUM":
-        search_query = "National+Aluminium+Company+NALCO+India"
-        headlines.extend([
-            "CONTEXT RULES: Recent data as of March 2026 indicates strong financial performance including record profits and revenue growth.",
-            "CONTEXT RULES: New product developments include the IA91 alloy.",
-            "CONTEXT RULES: Stock movement is heavily influenced by global aluminium prices and current market conditions."
-        ])
-        
     google_url = f"https://news.google.com/rss/search?q={search_query}&hl=en-IN&gl=IN&ceid=IN:en"
     et_url = f"https://news.google.com/rss/search?q={search_query}+site:economictimes.indiatimes.com&hl=en-IN&gl=IN&ceid=IN:en"
     mint_url = f"https://news.google.com/rss/search?q={search_query}+site:livemint.com&hl=en-IN&gl=IN&ceid=IN:en"

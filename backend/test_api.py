@@ -5,8 +5,8 @@ from httpx import AsyncClient, ASGITransport
 async def test_analyze():
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
-        print("Fetching data for NALCO...")
-        response = await ac.get("/api/analyze/NALCO")
+        print("Fetching data for TATASTEEL...")
+        response = await ac.get("/api/analyze/TATASTEEL")
         if response.status_code == 200:
             data = response.json()
             print("Status:", data["status"])

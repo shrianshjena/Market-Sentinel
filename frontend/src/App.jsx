@@ -3,6 +3,7 @@ import Footer from './components/layout/Footer'
 import StockScene from './components/three/StockScene'
 import TickerSelector from './components/dashboard/TickerSelector'
 import BentoGrid from './components/dashboard/BentoGrid'
+import ScoreExplanationModal from './components/dashboard/ScoreExplanationModal'
 import { useStockData } from './hooks/useStockData'
 
 function App() {
@@ -59,6 +60,7 @@ function App() {
       </main>
 
       <Footer />
+      <ScoreExplanationModal />
     </div>
   )
 }

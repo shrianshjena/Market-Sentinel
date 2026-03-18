@@ -1,6 +1,8 @@
-import { Activity } from 'lucide-react'
+import { Activity, Info } from 'lucide-react'
+import useStockStore from '../../store/useStockStore'
 
 export default function Navbar() {
+  const { setInfoModalOpen } = useStockStore()
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-white/5 backdrop-blur-xl border-b border-white/10">
       <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
@@ -22,6 +24,13 @@ export default function Navbar() {
           <span className="text-white/30 text-xs hidden sm:block">
             AI-Driven Equity Research
           </span>
+          <button 
+            onClick={() => setInfoModalOpen(true)}
+            className="text-white/30 hover:text-white/70 transition-colors mr-2 cursor-help"
+            title="How the Sentinel Score works"
+          >
+            <Info className="w-4 h-4" />
+          </button>
           <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
         </div>
       </div>

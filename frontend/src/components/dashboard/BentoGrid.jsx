@@ -1,4 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion'
+import { Info } from 'lucide-react'
 import SparklineChart from './SparklineChart'
 import SentinelScoreCard from './SentinelScoreCard'
 import AnalystSummary from './AnalystSummary'
@@ -7,7 +8,7 @@ import useStockStore from '../../store/useStockStore'
 import { getTicker3DConfig } from '../../utils/constants'
 
 export default function BentoGrid() {
-  const { stockData, isLoading, error, selectedTicker } = useStockStore()
+  const { stockData, isLoading, error, selectedTicker, setInfoModalOpen } = useStockStore()
 
   if (!selectedTicker) return null
 
@@ -98,9 +99,17 @@ export default function BentoGrid() {
           <div className="w-10 h-10 rounded-2xl bg-white/5 flex items-center justify-center mb-3">
             <span className="text-lg">🎯</span>
           </div>
-          <h4 className="text-white/40 text-[11px] uppercase tracking-wider mb-2">
-            Score Breakdown
-          </h4>
+          <div className="flex items-center justify-center gap-2 mb-2">
+            <h4 className="text-white/40 text-[11px] uppercase tracking-wider">
+              Score Breakdown
+            </h4>
+            <button 
+              onClick={() => setInfoModalOpen(true)}
+              className="text-white/30 hover:text-white/70 transition-colors cursor-help"
+            >
+              <Info className="w-3.5 h-3.5" />
+            </button>
+          </div>
           <div className="space-y-1.5 text-xs w-full">
             <div className="flex justify-between text-white/60">
               <span>Price Trend</span>
@@ -108,10 +117,14 @@ export default function BentoGrid() {
             </div>
             <div className="flex justify-between text-white/60">
               <span>Headlines</span>
-              <span className="text-white/80">40%</span>
+              <span className="text-white/80">20%</span>
             </div>
             <div className="flex justify-between text-white/60">
               <span>Sentiment</span>
+              <span className="text-white/80">20%</span>
+            </div>
+            <div className="flex justify-between text-white/60">
+              <span>Macro Context</span>
               <span className="text-white/80">20%</span>
             </div>
           </div>

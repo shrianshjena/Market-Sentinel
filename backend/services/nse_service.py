@@ -95,8 +95,8 @@ def fetch_stock_news(symbol: str) -> List[str]:
         ])
         
     google_url = f"https://news.google.com/rss/search?q={search_query}&hl=en-IN&gl=IN&ceid=IN:en"
-    et_url = "https://economictimes.indiatimes.com/markets/rssfeeds/2146842.cms"
-    mint_url = "https://www.livemint.com/rss/markets"
+    et_url = f"https://news.google.com/rss/search?q={search_query}+site:economictimes.indiatimes.com&hl=en-IN&gl=IN&ceid=IN:en"
+    mint_url = f"https://news.google.com/rss/search?q={search_query}+site:livemint.com&hl=en-IN&gl=IN&ceid=IN:en"
     
     headlines.extend(_fetch_rss_helper(google_url, 4))
     headlines.extend(_fetch_rss_helper(et_url, 3))

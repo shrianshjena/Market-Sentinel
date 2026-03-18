@@ -1,0 +1,9 @@
+<svg xmlns="http://www.svgrepo.com/show/365516/activity.svg" viewBox="0 0 24 24" fill="none" stroke="url(#bluePurpleGradient)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-activity">
+  <defs>
+    <linearGradient id="bluePurpleGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3b82f6" /> <!-- blue-500 -->
+      <stop offset="100%" stop-color="#9333ea" /> <!-- purple-600 -->
+    </linearGradient>
+  </defs>
+  <path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.48 12H2"/>
+</svg>

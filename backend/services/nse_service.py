@@ -62,11 +62,30 @@ def fetch_stock_data(symbol: str) -> Tuple[float, List[HistoricalPoint]]:
     return current_price, historical
 
 
+def _fetch_rss_helper(url: str, limit: int = 5) -> List[str]:
+    headlines = []
+    try:
+        req = urllib.request.Request(
+            url, 
+            headers={'User-Agent': 'Mozilla/5.0'}
+        )
+        html = urllib.request.urlopen(req, timeout=10).read()
+        root = ET.fromstring(html)
+        for item in root.findall('.//item')[:limit]:
+            title = item.find('title')
+            if title is not None and title.text:
+                headlines.append(title.text)
+    except Exception as e:
+        print(f"Failed to fetch RSS from {url}: {e}")
+    return headlines
+
 def fetch_stock_news(symbol: str) -> List[str]:
     """
-    Fetch the latest 5-10 news headlines for a given stock symbol via Google News RSS.
+    Fetch the latest news headlines from Google News, Economic Times, and Livemint RSS.
     """
     search_query = f"{symbol}+stock+India"
+    headlines = []
+    
     if symbol == "NALCO" or symbol == "NATIONALUM":
         search_query = "National+Aluminium+Company+NALCO+India"
         headlines.extend([
@@ -75,22 +94,12 @@ def fetch_stock_news(symbol: str) -> List[str]:
             "CONTEXT RULES: Stock movement is heavily influenced by global aluminium prices and current market conditions."
         ])
         
-    url = f"https://news.google.com/rss/search?q={search_query}&hl=en-IN&gl=IN&ceid=IN:en"
-    headlines = []
+    google_url = f"https://news.google.com/rss/search?q={search_query}&hl=en-IN&gl=IN&ceid=IN:en"
+    et_url = "https://economictimes.indiatimes.com/markets/rssfeeds/2146842.cms"
+    mint_url = "https://www.livemint.com/rss/markets"
     
-    try:
-        req = urllib.request.Request(
-            url, 
-            headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'}
-        )
-        html = urllib.request.urlopen(req, timeout=10).read()
-        root = ET.fromstring(html)
-        
-        for item in root.findall('.//item')[:8]:
-            title = item.find('title')
-            if title is not None and title.text:
-                headlines.append(title.text)
-    except Exception as e:
-        print(f"Failed to fetch news for {symbol}: {e}")
+    headlines.extend(_fetch_rss_helper(google_url, 4))
+    headlines.extend(_fetch_rss_helper(et_url, 3))
+    headlines.extend(_fetch_rss_helper(mint_url, 3))
         
     return headlines

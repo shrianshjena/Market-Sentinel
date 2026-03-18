@@ -25,8 +25,9 @@ def compute_sentinel_score(
     """
     Compute the Sentinel Score using weighted factors:
     - 40% Price Trend (Historical)
-    - 40% Headline Impact (Live News)
+    - 20% Headline Impact (Live News)
     - 20% Sentiment Consistency
+    - 20% Macro Context
     """
     price_trend_score = _score_price_trend(price_history)
     headline_score = _score_headline_impact(
@@ -35,11 +36,15 @@ def compute_sentinel_score(
     sentiment_score = _score_sentiment(
         gemini_analysis.get("sentiment_consistency", "")
     )
+    macro_score = _score_macro_context(
+        gemini_analysis.get("overall_context", "")
+    )
 
     final = int(
         0.4 * price_trend_score
-        + 0.4 * headline_score
+        + 0.2 * headline_score
         + 0.2 * sentiment_score
+        + 0.2 * macro_score
     )
     return max(0, min(100, final))
 
@@ -110,3 +115,16 @@ def _score_sentiment(sentiment_text: str) -> int:
     elif "negative" in text:
         return 35
     return 50
+
+def _score_macro_context(context_text: str) -> int:
+    """Score macro-environmental factors from analysis."""
+    text = context_text.lower()
+    
+    positive_keywords = ["growth", "expansion", "supportive", "tailwinds", "favorable", "cut", "demand", "recovery", "resilient"]
+    negative_keywords = ["inflation", "recession", "headwinds", "rate hike", "slowdown", "weakness", "concern", "risk", "pressure"]
+    
+    pos_count = sum(1 for kw in positive_keywords if kw in text)
+    neg_count = sum(1 for kw in negative_keywords if kw in text)
+    
+    net = pos_count - neg_count
+    return max(0, min(100, 50 + net * 15))

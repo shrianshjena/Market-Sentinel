@@ -31,8 +31,9 @@ export default function SentinelScoreCard({ score, category }) {
             <p className="text-[10px] font-semibold text-white/70 uppercase tracking-wider mb-2">Score Breakdown</p>
             <ul className="text-xs text-white/60 space-y-1.5">
               <li className="flex justify-between"><span>Price Trend:</span> <span className="text-white">40%</span></li>
-              <li className="flex justify-between"><span>Live Headlines:</span> <span className="text-white">40%</span></li>
+              <li className="flex justify-between"><span>Live Headlines:</span> <span className="text-white">20%</span></li>
               <li className="flex justify-between"><span>Sentiment:</span> <span className="text-white">20%</span></li>
+              <li className="flex justify-between"><span>Macro Context:</span> <span className="text-white">20%</span></li>
             </ul>
           </motion.div>
         )}

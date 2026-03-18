@@ -2,7 +2,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
 from config import settings
-from services.nse_service import fetch_stock_data
+from services.nse_service import fetch_stock_data, fetch_stock_news
 from services.ai_service import analyze_stock
 from services.sentinel_scorer import compute_sentinel_score, classify
 from models.schemas import Analysis, StockAnalysisResponse
@@ -22,11 +22,12 @@ async def analyze(ticker: str):
     ticker = ticker.upper()
 
     try:
-        # Step 1: Fetch 1-year price data from NSE India
+        # Step 1: Fetch 1-year price data from NSE India and live news
         current_price, historical = fetch_stock_data(ticker)
+        news_context = fetch_stock_news(ticker)
 
         # Step 2: Get AI analysis with failovers
-        ai_result = analyze_stock(ticker, current_price, historical)
+        ai_result = analyze_stock(ticker, current_price, historical, news_context)
 
         # Step 3: Compute the Sentinel Score (40/40/20 weighted)
         score = compute_sentinel_score(historical, ai_result)

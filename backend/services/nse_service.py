@@ -1,22 +1,28 @@
 import httpx
 from datetime import datetime
 from typing import List, Tuple
+import xml.etree.ElementTree as ET
+import urllib.request
 
 from models.schemas import HistoricalPoint
 
 
 def fetch_stock_data(symbol: str) -> Tuple[float, List[HistoricalPoint]]:
     """
-    Fetch current price and ~90-day historical data from Yahoo Finance.
-
-    Args:
-        symbol: NSE stock symbol (e.g., 'TATASTEEL', 'RELIANCE', 'HDFCBANK')
-
-    Returns:
-        Tuple of (current_price, list of HistoricalPoint sorted oldest-first)
+    Fetch 1-year of daily stock data from Yahoo Finance.
     """
-    # Append .NS for NSE stocks on Yahoo Finance
-    yf_symbol = f"{symbol.upper()}.NS"
+    # Ticker cleanup & Mapping
+    symbol = symbol.strip().upper()
+    
+    symbol_map = {
+        "NALCO": "NATIONALUM"
+    }
+    symbol = symbol_map.get(symbol, symbol)
+    
+    if not symbol.endswith('.NS') and not symbol.endswith('.BO'):
+        yf_symbol = f"{symbol}.NS"
+    else:
+        yf_symbol = symbol
     url = f"https://query1.finance.yahoo.com/v8/finance/chart/{yf_symbol}?range=1y&interval=1d"
     
     headers = {
@@ -54,3 +60,32 @@ def fetch_stock_data(symbol: str) -> Tuple[float, List[HistoricalPoint]]:
     current_price = historical[-1].close if historical else 0.0
     
     return current_price, historical
+
+
+def fetch_stock_news(symbol: str) -> List[str]:
+    """
+    Fetch the latest 5-10 news headlines for a given stock symbol via Google News RSS.
+    """
+    search_query = f"{symbol}+stock+India"
+    if symbol == "NALCO" or symbol == "NATIONALUM":
+        search_query = "National+Aluminium+Company+NALCO+India"
+        
+    url = f"https://news.google.com/rss/search?q={search_query}&hl=en-IN&gl=IN&ceid=IN:en"
+    headlines = []
+    
+    try:
+        req = urllib.request.Request(
+            url, 
+            headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'}
+        )
+        html = urllib.request.urlopen(req, timeout=10).read()
+        root = ET.fromstring(html)
+        
+        for item in root.findall('.//item')[:8]:
+            title = item.find('title')
+            if title is not None and title.text:
+                headlines.append(title.text)
+    except Exception as e:
+        print(f"Failed to fetch news for {symbol}: {e}")
+        
+    return headlines

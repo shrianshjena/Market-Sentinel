@@ -1,34 +1,24 @@
 import json
 import re
 import httpx
-from google import genai
 from config import settings
 from models.schemas import HistoricalPoint
 from typing import List
 
 # Primary models
-GEMINI_MODELS = ["gemini-2.5-flash", "gemini-flash-latest"]
 GROQ_MODEL = "llama-3.3-70b-versatile"
 HF_MODEL = "mistralai/Mixtral-8x7B-Instruct-v0.1"
-
-_gemini_client = None
-
-def _get_gemini_client():
-    global _gemini_client
-    if _gemini_client is None:
-        if settings.gemini_api_key:
-            _gemini_client = genai.Client(api_key=settings.gemini_api_key)
-    return _gemini_client
 
 
 def analyze_stock(
     ticker: str,
     current_price: float,
     price_history: List[HistoricalPoint],
+    news_context: List[str],
 ) -> dict:
     """
-    Generate comprehensive insights using a cascade fallback strategy:
-    Gemini (w/ Search) -> Groq -> Hugging Face.
+    Generate comprehensive insights using Groq -> Hugging Face fallback.
+    Injects dynamic 2026 news to ground the LLM's knowledge.
     """
     prices = [p.close for p in price_history]
     if not prices:
@@ -41,13 +31,18 @@ def analyze_stock(
     price_max = max(prices)
     last_5 = prices[-5:] if len(prices) >= 5 else prices
 
+    news_text = "\n".join([f"- {n}" for n in news_context]) if news_context else "No recent news found."
+
     prompt = f"""You are a Senior Equity Research Analyst specializing in Indian markets (NSE).
 
-CRITICAL CONTEXT: Today's date is March 18, 2026. You MUST use Google Search grounding (or your internal knowledge if updated) to fetch the most up-to-date information up to today, avoiding outdated 2024/2025 data.
+CRITICAL CONTEXT: Today's date is March 18, 2026. You MUST analyze the provided Recent News Headlines (which reflect the latest 2026 data, including any recent financial performance, product launches, or partnerships) and the stock price data to formulate your insights. Do not use outdated 2024 information.
 
 Analyze the stock {ticker} listed on NSE based on the following data:
 
-HISTORICAL DATA (1-year window):
+RECENT NEWS HEADLINES (Latest 2026 Context):
+{news_text}
+
+HISTORICAL PRICE DATA (1-year window):
 - Current Price: INR {current_price:.2f}
 - 1-Year Price Range: INR {price_min:.2f} to INR {price_max:.2f}
 - 1-Year Return: {pct_change:+.2f}%
@@ -60,40 +55,22 @@ Provide your analysis in the following STRICT JSON format (no markdown code bloc
   "company_details": "1-2 sentences on what the company does and its sector position.",
   "overall_context": "2-3 sentences on the broader market conditions or macroeconomic factors impacting this stock.",
   "trend_summary": "2-3 sentence analysis of the 1-year price trend. Is it in recovery, consolidation, or downtrend?",
-  "headline_impact": "2-3 sentences on the most impactful recent news headlines or anticipated events affecting the stock.",
-  "market_sentiment": "1-2 sentences detailing how institutional and retail investors are perceiving the stock.",
+  "headline_impact": "2-3 sentences analyzing the provided RECENT NEWS HEADLINES and how they affect the stock outlook.",
+  "market_sentiment": "1-2 sentences detailing how institutional and retail investors are perceiving the stock based on the news.",
   "sentiment_consistency": "1-2 sentences on whether market sentiment is consistently bullish, bearish, or mixed.",
   "recommendation": "One clear recommendation sentence (e.g., 'High Confidence Buy' or 'Hold with caution')."
 }}
 
 IMPORTANT: Respond ONLY with the JSON object. Do not include introductory text, markdown code blocks, or explanations."""
 
-    # 1. Primary: Gemini (with search grounding if possible)
-    try:
-        client = _get_gemini_client()
-        if client:
-            for model_name in GEMINI_MODELS:
-                try:
-                    response = client.models.generate_content(
-                        model=model_name,
-                        contents=prompt,
-                    )
-                    return _parse_response(response.text)
-                except Exception as e:
-                    if "429" in str(e) or "RESOURCE_EXHAUSTED" in str(e):
-                        continue
-                    raise e
-    except Exception as e:
-        print(f"Gemini failed: {e}. Falling back to Groq.")
-
-    # 2. Secondary: Groq
+    # 1. Primary: Groq
     try:
         if settings.groq_api_key:
-            return _call_groq(prompt)
+             return _call_groq(prompt)
     except Exception as e:
         print(f"Groq failed: {e}. Falling back to Hugging Face.")
 
-    # 3. Tertiary: Hugging Face
+    # 2. Secondary: Hugging Face
     try:
         if settings.hf_api_key:
             return _call_hf(prompt)

@@ -45,7 +45,7 @@ def compute_sentinel_score(
 
 
 def _score_price_trend(history: List[HistoricalPoint]) -> int:
-    """Score based on 90-day return and recent momentum."""
+    """Score based on 1-year return and recent momentum."""
     if len(history) < 2:
         return 50
 
@@ -60,8 +60,8 @@ def _score_price_trend(history: List[HistoricalPoint]) -> int:
     else:
         momentum = 0
 
-    # Map total_return to 0-100 scale (-20% -> 0, +20% -> 100)
-    trend_score = max(0, min(100, int(50 + total_return * 2.5)))
+    # Map total_return to 0-100 scale (-50% -> 0, +50% -> 100)
+    trend_score = max(0, min(100, int(50 + total_return)))
     momentum_bonus = max(-15, min(15, int(momentum * 3)))
 
     return max(0, min(100, trend_score + momentum_bonus))

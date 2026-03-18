@@ -1,14 +1,43 @@
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Info } from 'lucide-react'
+import { useState } from 'react'
 import GlassPanel from '../layout/GlassPanel'
 import { getScoreColor } from '../../utils/constants'
 
 export default function SentinelScoreCard({ score, category }) {
+  const [showTooltip, setShowTooltip] = useState(false)
   const color = getScoreColor(score)
   const circumference = 2 * Math.PI * 52
   const offset = circumference * (1 - score / 100)
 
   return (
-    <GlassPanel className="p-6 flex flex-col items-center justify-center">
+    <GlassPanel className="p-6 flex flex-col items-center justify-center relative">
+      <div 
+        className="absolute top-4 right-4 text-white/30 hover:text-white/70 transition-colors cursor-help"
+        onMouseEnter={() => setShowTooltip(true)}
+        onMouseLeave={() => setShowTooltip(false)}
+      >
+        <Info className="w-4 h-4" />
+      </div>
+
+      <AnimatePresence>
+        {showTooltip && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 10 }}
+            className="absolute top-10 right-4 w-48 p-3 rounded-lg bg-slate-800/90 border border-white/10 shadow-xl backdrop-blur-md z-10"
+          >
+            <p className="text-[10px] font-semibold text-white/70 uppercase tracking-wider mb-2">Score Breakdown</p>
+            <ul className="text-xs text-white/60 space-y-1.5">
+              <li className="flex justify-between"><span>Price Trend:</span> <span className="text-white">40%</span></li>
+              <li className="flex justify-between"><span>Live Headlines:</span> <span className="text-white">40%</span></li>
+              <li className="flex justify-between"><span>Sentiment:</span> <span className="text-white">20%</span></li>
+            </ul>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <h3 className="text-white/50 text-xs uppercase tracking-wider font-medium mb-4">
         Sentinel Score
       </h3>

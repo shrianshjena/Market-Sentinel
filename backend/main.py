@@ -11,7 +11,7 @@ app = FastAPI(title="Market Sentinel API")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000"],
+    allow_origins=["https://marketsentinel-gamma.vercel.app", "http://localhost:5173", "http://localhost:3000"],
     allow_methods=["GET"],
     allow_headers=["*"],
 )

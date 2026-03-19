@@ -87,7 +87,6 @@ def fetch_stock_fundamentals(symbol: str) -> dict:
     fundamentals = {
         "pe_ratio": 0.0,
         "pb_ratio": 0.0,
-        "roe": 0.0,
         "sector_pe": 0.0,
         "sector": "Unknown",
         "industry": "Unknown",
@@ -139,14 +138,10 @@ def fetch_stock_fundamentals(symbol: str) -> dict:
                 if r.status_code == 200:
                     result = r.json().get("quoteSummary", {}).get("result", [{}])[0]
                     stats = result.get("defaultKeyStatistics", {})
-                    fin = result.get("financialData", {})
                     pb = (stats.get("priceToBook") or {}).get("raw", 0.0)
-                    roe_raw = (fin.get("returnOnEquity") or {}).get("raw", 0.0)
                     if pb:
                         fundamentals["pb_ratio"] = float(pb)
-                    if roe_raw:
-                        fundamentals["roe"] = float(roe_raw) * 100
-                    print(f"Yahoo: PB={pb}, ROE={roe_raw}")
+                    print(f"Yahoo: PB={pb}")
     except Exception as e:
         print(f"Yahoo fetch failed: {e}")
 

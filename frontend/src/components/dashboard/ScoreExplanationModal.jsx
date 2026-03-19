@@ -67,7 +67,7 @@ export default function ScoreExplanationModal() {
                   Fundamental Valuation <span className="text-xs px-2 py-0.5 rounded-full bg-white/10 text-white/70">20% Weight</span>
                 </h3>
                 <p className="text-sm text-white/40 mt-1 leading-relaxed">
-                  Calculates intrinsic financial health by scaling real-time P/E (Price-to-Earnings) ratios, P/B (Price-to-Book) metrics, and ROE (Return on Equity). Punishes overhyped valuations while deeply rewarding fundamentally sound equities.
+                  Evaluates real-time valuation metrics sourced from NSE and Yahoo Finance. P/E ratio is benchmarked against the live NSE sector average — rewarding undervalued equities and penalising overpriced ones. P/B ratio assesses whether the market values the stock above or below its book value.
                 </p>
               </div>
             </div>

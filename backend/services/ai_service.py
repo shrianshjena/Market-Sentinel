@@ -38,7 +38,7 @@ def analyze_stock(
 
     prompt = f"""You are a Senior Equity Research Analyst specializing in Indian markets (NSE).
 
-CRITICAL CONTEXT: Today's date is March 18, 2026. You MUST analyze the provided Recent News Headlines (which reflect the latest 2026 data, including any recent financial performance, product launches, or partnerships) and the stock price data to formulate your insights. Do not use outdated 2024 information.
+CRITICAL CONTEXT: Today's date is March 19, 2026. You MUST analyze the provided Recent News Headlines (which reflect the latest 2026 data, including any recent financial performance, product launches, or partnerships) and the stock price data to formulate your insights. Do not use outdated 2024 information.
 
 Analyze the stock {ticker} listed on NSE based on the following data:
 
@@ -50,8 +50,7 @@ FUNDAMENTAL VALUATION (Live Metrics from NSE):
 - Stock P/E Ratio: {fundamentals.get('pe_ratio', 0.0)}
 - Sector Benchmark P/E: {fundamentals.get('sector_pe', 0.0)} (NSE sector average)
 - P/B Ratio: {fundamentals.get('pb_ratio', 0.0)}
-- Return on Equity (ROE): {fundamentals.get('roe', 0.0):.2f}%
-(CRITICAL: Evaluate the stock P/E strictly relative to the Sector Benchmark P/E above. A stock trading at a premium/discount to its sector P/E has important implications for valuation.)
+(CRITICAL: Evaluate the stock P/E strictly relative to the Sector Benchmark P/E above. A stock trading at a premium/discount to its sector P/E has important valuation implications. Use P/B to assess whether the market values the stock above or below its book value.)
 
 HISTORICAL PRICE DATA (5-year window):
 - Current Price: INR {current_price:.2f}

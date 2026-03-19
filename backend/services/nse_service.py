@@ -76,12 +76,13 @@ def _fetch_rss_helper(url: str, limit: int = 5) -> List[str]:
 
 def fetch_stock_fundamentals(symbol: str) -> dict:
     """
-    Fetch fundamental financial metrics from NSE's official API.
-    Returns pe_ratio, pb_ratio, roe, sector_pe, sector, industry.
+    Dual-source fundamental data fetcher:
+    - NSE official API: P/E ratio, Sector P/E benchmark, Sector, Industry
+    - Yahoo Finance (fc.yahoo.com crumb): P/B ratio, ROE
     """
     symbol = symbol.strip().upper()
-    # Strip .NS/.BO suffix if present since NSE API uses bare symbols
     nse_symbol = symbol.replace(".NS", "").replace(".BO", "")
+    yf_symbol = f"{nse_symbol}.NS"
 
     fundamentals = {
         "pe_ratio": 0.0,
@@ -92,45 +93,65 @@ def fetch_stock_fundamentals(symbol: str) -> dict:
         "industry": "Unknown",
     }
 
-    nse_headers = {
+    base_headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
         "Accept": "application/json, text/plain, */*",
         "Accept-Language": "en-US,en;q=0.9",
-        "Referer": "https://www.nseindia.com/",
     }
 
+    # ── Source 1: NSE API for P/E and Sector data ──────────────────────────
     try:
+        nse_headers = {**base_headers, "Referer": "https://www.nseindia.com/"}
         with httpx.Client(follow_redirects=True, timeout=20.0) as session:
-            # Step 1: Hit NSE homepage to acquire session cookies (required)
             session.get("https://www.nseindia.com/", headers=nse_headers)
-
-            # Step 2: Fetch real-time quote data
             url = f"https://www.nseindia.com/api/quote-equity?symbol={nse_symbol}"
             response = session.get(url, headers=nse_headers)
-
             if response.status_code == 200:
                 data = response.json()
-
-                # P/E ratios from metadata
                 metadata = data.get("metadata", {})
+                industry_info = data.get("industryInfo", {})
                 pe = metadata.get("pdSymbolPe", 0.0)
                 sector_pe = metadata.get("pdSectorPe", 0.0)
-
-                # Sector and Industry from industryInfo
-                industry_info = data.get("industryInfo", {})
                 sector = industry_info.get("sector", "Unknown")
                 industry = industry_info.get("industry", industry_info.get("basicIndustry", "Unknown"))
-
                 fundamentals["pe_ratio"] = float(pe) if pe else 0.0
                 fundamentals["sector_pe"] = float(sector_pe) if sector_pe else 0.0
                 fundamentals["sector"] = str(sector or "Unknown")
                 fundamentals["industry"] = str(industry or "Unknown")
-
-                print(f"NSE fundamentals fetched: PE={pe}, SectorPE={sector_pe}, Sector={sector}")
+                print(f"NSE: PE={pe}, SectorPE={sector_pe}, Sector={sector}")
     except Exception as e:
-        print(f"NSE fundamentals fetch failed: {e}")
+        print(f"NSE fetch failed: {e}")
+
+    # ── Source 2: Yahoo Finance for P/B and ROE (via fc.yahoo.com crumb) ───
+    try:
+        yf_headers = {**base_headers, "Accept": "*/*"}
+        with httpx.Client(follow_redirects=True, timeout=15.0) as session:
+            # Acquire Yahoo consent cookie + crumb
+            session.get("https://fc.yahoo.com", headers=yf_headers)
+            r_crumb = session.get("https://query1.finance.yahoo.com/v1/test/getcrumb", headers=yf_headers)
+            if r_crumb.status_code == 200:
+                crumb = r_crumb.text.strip()
+                url = (
+                    f"https://query1.finance.yahoo.com/v10/finance/quoteSummary/{yf_symbol}"
+                    f"?modules=defaultKeyStatistics,financialData&crumb={crumb}"
+                )
+                r = session.get(url, headers={**yf_headers, "Accept": "application/json"})
+                if r.status_code == 200:
+                    result = r.json().get("quoteSummary", {}).get("result", [{}])[0]
+                    stats = result.get("defaultKeyStatistics", {})
+                    fin = result.get("financialData", {})
+                    pb = (stats.get("priceToBook") or {}).get("raw", 0.0)
+                    roe_raw = (fin.get("returnOnEquity") or {}).get("raw", 0.0)
+                    if pb:
+                        fundamentals["pb_ratio"] = float(pb)
+                    if roe_raw:
+                        fundamentals["roe"] = float(roe_raw) * 100
+                    print(f"Yahoo: PB={pb}, ROE={roe_raw}")
+    except Exception as e:
+        print(f"Yahoo fetch failed: {e}")
 
     return fundamentals
+
 
 
 def fetch_stock_news(symbol: str) -> List[str]:

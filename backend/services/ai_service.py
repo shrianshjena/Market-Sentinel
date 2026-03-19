@@ -1,11 +1,13 @@
 import json
 import re
 import httpx
+import google.generativeai as genai
 from config import settings
 from models.schemas import HistoricalPoint
 from typing import List
 
 # Primary models
+GEMINI_MODEL = "gemini-1.5-flash"
 GROQ_MODEL = "llama-3.3-70b-versatile"
 HF_MODEL = "mistralai/Mixtral-8x7B-Instruct-v0.1"
 
@@ -72,14 +74,21 @@ Provide your analysis in the following STRICT JSON format (no markdown code bloc
 
 IMPORTANT: Respond ONLY with the JSON object. Do not include introductory text, markdown code blocks, or explanations."""
 
-    # 1. Primary: Groq
+    # 1. Primary: Gemini
+    try:
+        if settings.gemini_api_key:
+             return _call_gemini(prompt)
+    except Exception as e:
+        print(f"Gemini failed: {e}. Falling back to Groq.")
+
+    # 2. Secondary: Groq
     try:
         if settings.groq_api_key:
              return _call_groq(prompt)
     except Exception as e:
         print(f"Groq failed: {e}. Falling back to Hugging Face.")
 
-    # 2. Secondary: Hugging Face
+    # 3. Tertiary: Hugging Face
     try:
         if settings.hf_api_key:
             return _call_hf(prompt)
@@ -87,6 +96,19 @@ IMPORTANT: Respond ONLY with the JSON object. Do not include introductory text, 
         print(f"Hugging Face failed: {e}. All models degraded.")
 
     return _fallback_analysis()
+
+
+def _call_gemini(prompt: str) -> dict:
+    genai.configure(api_key=settings.gemini_api_key)
+    model = genai.GenerativeModel(GEMINI_MODEL)
+    response = model.generate_content(
+        prompt,
+        generation_config=genai.types.GenerationConfig(
+            temperature=0.2,
+            response_mime_type="application/json",
+        ),
+    )
+    return _parse_response(response.text)
 
 
 def _call_groq(prompt: str) -> dict:

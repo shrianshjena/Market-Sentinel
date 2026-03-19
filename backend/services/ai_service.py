@@ -74,28 +74,33 @@ Provide your analysis in the following STRICT JSON format (no markdown code bloc
 
 IMPORTANT: Respond ONLY with the JSON object. Do not include introductory text, markdown code blocks, or explanations."""
 
+    last_error = "No API keys configured."
+
     # 1. Primary: Groq
     try:
         if settings.groq_api_key:
              return _call_groq(prompt)
     except Exception as e:
-        print(f"Groq failed: {e}. Falling back to Hugging Face.")
+        last_error = f"Groq Error: {str(e)}"
+        print(last_error)
 
     # 2. Secondary: Hugging Face
     try:
         if settings.hf_api_key:
             return _call_hf(prompt)
     except Exception as e:
-        print(f"Hugging Face failed: {e}. Falling back to Gemini.")
+        last_error = f"HF Error: {str(e)}"
+        print(last_error)
 
     # 3. Tertiary: Gemini
     try:
         if settings.gemini_api_key:
              return _call_gemini(prompt)
     except Exception as e:
-        print(f"Gemini failed: {e}. All models degraded.")
+        last_error = f"Gemini Error: {str(e)}"
+        print(last_error)
 
-    return _fallback_analysis()
+    return _fallback_analysis(last_error)
 
 
 def _call_gemini(prompt: str) -> dict:
@@ -174,10 +179,10 @@ def _parse_response(text: str) -> dict:
     raise ValueError("Failed to parse AI output into valid JSON")
 
 
-def _fallback_analysis() -> dict:
-    """Return a neutral fallback if all AIs fail."""
+def _fallback_analysis(last_error: str = "Unknown error") -> dict:
+    """Return a neutral fallback with diagnostic telemetry if all AIs fail."""
     return {
-        "company_details": "Company details unavailable.",
+        "company_details": f"Analysis offline. Telemetry: {last_error}",
         "overall_context": "Macro-economic context unavailable.",
         "fundamental_analysis": "Fundamental valuation data is currently unavailable.",
         "trend_summary": "Unable to retrieve trend analysis at this time. The Intelligence Engine is recalibrating.",

@@ -75,45 +75,33 @@ def _fetch_rss_helper(url: str, limit: int = 5) -> List[str]:
     return headlines
 
 def fetch_stock_fundamentals(symbol: str) -> dict:
-    """Fetch Key Statistics and Financial Data from Yahoo Finance."""
+    """Fetch Key Statistics and Financial Data using yfinance (handles crumb auth automatically)."""
+    import yfinance as yf
+
     symbol = symbol.strip().upper()
-    if not symbol.endswith('.NS') and not symbol.endswith('.BO'):
-        yf_symbol = f"{symbol}.NS"
-    else:
-        yf_symbol = symbol
-        
-    url = f"https://query2.finance.yahoo.com/v10/finance/quoteSummary/{yf_symbol}?modules=defaultKeyStatistics,financialData,summaryProfile"
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)"
-    }
-    
+    yf_symbol = f"{symbol}.NS" if not symbol.endswith(('.NS', '.BO')) else symbol
+
     fundamentals = {"pe_ratio": 0.0, "pb_ratio": 0.0, "roe": 0.0, "sector": "Unknown", "industry": "Unknown"}
-    
+
     try:
-        with httpx.Client(timeout=10.0) as client:
-            response = client.get(url, headers=headers)
-            if response.status_code == 200:
-                data = response.json()
-                res = data.get("quoteSummary", {}).get("result", [])
-                if res and len(res) > 0:
-                    stats = res[0].get("defaultKeyStatistics", {})
-                    fin = res[0].get("financialData", {})
-                    prof = res[0].get("summaryProfile", {})
-                    
-                    pe = stats.get("trailingPE", {}).get("raw", stats.get("forwardPE", {}).get("raw", 0.0))
-                    pb = stats.get("priceToBook", {}).get("raw", 0.0)
-                    roe_raw = fin.get("returnOnEquity", {}).get("raw", 0.0)
-                    roe_pct = roe_raw * 100 if roe_raw else 0.0
-                    
-                    fundamentals["pe_ratio"] = float(pe) if pe else 0.0
-                    fundamentals["pb_ratio"] = float(pb) if pb else 0.0
-                    fundamentals["roe"] = float(roe_pct) if roe_pct else 0.0
-                    fundamentals["sector"] = prof.get("sector", "Unknown")
-                    fundamentals["industry"] = prof.get("industry", "Unknown")
+        ticker = yf.Ticker(yf_symbol)
+        info = ticker.info
+
+        pe = info.get("trailingPE") or info.get("forwardPE") or 0.0
+        pb = info.get("priceToBook") or 0.0
+        roe_raw = info.get("returnOnEquity") or 0.0
+        roe_pct = float(roe_raw) * 100 if roe_raw else 0.0
+
+        fundamentals["pe_ratio"] = float(pe) if pe else 0.0
+        fundamentals["pb_ratio"] = float(pb) if pb else 0.0
+        fundamentals["roe"] = float(roe_pct)
+        fundamentals["sector"] = str(info.get("sector") or "Unknown")
+        fundamentals["industry"] = str(info.get("industry") or "Unknown")
     except Exception as e:
-        print(f"Failed to fetch fundamentals: {e}")
-        
+        print(f"Failed to fetch fundamentals via yfinance: {e}")
+
     return fundamentals
+
 
 def fetch_stock_news(symbol: str) -> List[str]:
     """

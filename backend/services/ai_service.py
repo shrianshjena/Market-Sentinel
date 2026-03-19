@@ -81,24 +81,24 @@ IMPORTANT: Respond ONLY with the JSON object. Do not include introductory text, 
         if settings.groq_api_key:
              return _call_groq(prompt)
     except Exception as e:
-        last_error = f"Groq Error: {str(e)}"
-        print(last_error)
+        last_error = str(e)
+        print(f"Groq Error: {last_error}")
 
     # 2. Secondary: Hugging Face
     try:
         if settings.hf_api_key:
             return _call_hf(prompt)
     except Exception as e:
-        last_error = f"HF Error: {str(e)}"
-        print(last_error)
+        last_error = str(e)
+        print(f"HF Error: {last_error}")
 
     # 3. Tertiary: Gemini
     try:
         if settings.gemini_api_key:
              return _call_gemini(prompt)
     except Exception as e:
-        last_error = f"Gemini Error: {str(e)}"
-        print(last_error)
+        last_error = str(e)
+        print(f"Gemini Error: {last_error}")
 
     return _fallback_analysis(last_error)
 
@@ -180,9 +180,10 @@ def _parse_response(text: str) -> dict:
 
 
 def _fallback_analysis(last_error: str = "Unknown error") -> dict:
-    """Return a neutral fallback with diagnostic telemetry if all AIs fail."""
+    """Return a neutral fallback if all AIs fail."""
+    print(f"All AI providers failed. Last error: {last_error}")
     return {
-        "company_details": f"Analysis offline. Telemetry: {last_error}",
+        "company_details": "Company details unavailable.",
         "overall_context": "Macro-economic context unavailable.",
         "fundamental_analysis": "Fundamental valuation data is currently unavailable.",
         "trend_summary": "Unable to retrieve trend analysis at this time. The Intelligence Engine is recalibrating.",

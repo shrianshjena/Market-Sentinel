@@ -74,11 +74,40 @@ def _fetch_rss_helper(url: str, limit: int = 5) -> List[str]:
         print(f"Failed to fetch RSS from {url}: {e}")
     return headlines
 
+
+# Maps NSE industryInfo.sector -> NIFTY sectoral index symbol
+_SECTOR_INDEX_MAP = {
+    "Metals & Mining": "NIFTY METAL",
+    "Oil Gas & Consumable Fuels": "NIFTY ENERGY",
+    "Information Technology": "NIFTY IT",
+    "Financial Services": "NIFTY BANK",
+    "Consumer Goods": "NIFTY FMCG",
+    "Fast Moving Consumer Goods": "NIFTY FMCG",
+    "Pharmaceuticals & Biotech": "NIFTY PHARMA",
+    "Healthcare": "NIFTY HEALTHCARE",
+    "Realty": "NIFTY REALTY",
+    "Automobiles & Auto Components": "NIFTY AUTO",
+    "Telecom": "NIFTY IT",
+    "Services": "NIFTY SERV SECTOR",
+    "Capital Goods": "NIFTY INFRA",
+    "Construction": "NIFTY INFRA",
+    "Power": "NIFTY ENERGY",
+    "Chemicals": "NIFTY CHEMICALS",
+    "Media Entertainment & Publication": "NIFTY MEDIA",
+    "Textiles": "NIFTY COMMODITIES",
+    "Diversified": "NIFTY 500",
+}
+
+
 def fetch_stock_fundamentals(symbol: str) -> dict:
     """
-    Fetch fundamental data from NSE's official API.
-    Returns: pe_ratio, sector_pe, sector, industry.
-    Fast single-source call (~2s). No external auth needed.
+    Fetch fundamental data from NSE's official APIs:
+    1. quote-equity → stock P/E, sector name, industry
+    2. allIndices   → true NIFTY sectoral index P/E (the real benchmark)
+
+    The sectoral index P/E (NIFTY METAL, NIFTY ENERGY, etc.) is the correct
+    peer comparison — not pdSectorPe, which is the stock's own benchmark index P/E
+    and can equal the stock's P/E when the stock dominates that index.
     """
     symbol = symbol.strip().upper()
     nse_symbol = symbol.replace(".NS", "").replace(".BO", "")
@@ -97,32 +126,53 @@ def fetch_stock_fundamentals(symbol: str) -> dict:
     }
 
     try:
-        with httpx.Client(follow_redirects=True, timeout=10.0) as session:
-            # NSE requires a homepage visit to set session cookies
+        with httpx.Client(follow_redirects=True, timeout=12.0) as session:
+            # Step 1: Prime NSE session cookies
             session.get("https://www.nseindia.com/", headers=headers)
-            r = session.get(
+
+            # Step 2: Fetch stock quote for P/E, sector, industry
+            r_quote = session.get(
                 f"https://www.nseindia.com/api/quote-equity?symbol={nse_symbol}",
                 headers=headers,
             )
-            if r.status_code == 200:
-                data = r.json()
+            if r_quote.status_code == 200:
+                data = r_quote.json()
                 meta = data.get("metadata", {})
                 ind = data.get("industryInfo", {})
                 pe = meta.get("pdSymbolPe")
-                sector_pe = meta.get("pdSectorPe")
+                sector = str(ind.get("sector") or "Unknown")
+                industry = str(ind.get("industry") or ind.get("basicIndustry") or "Unknown")
                 if pe:
                     fundamentals["pe_ratio"] = float(pe)
-                if sector_pe:
-                    fundamentals["sector_pe"] = float(sector_pe)
-                fundamentals["sector"] = str(ind.get("sector") or "Unknown")
-                fundamentals["industry"] = str(
-                    ind.get("industry") or ind.get("basicIndustry") or "Unknown"
-                )
-                print(f"NSE: PE={pe}, SectorPE={sector_pe}, Sector={fundamentals['sector']}")
+                fundamentals["sector"] = sector
+                fundamentals["industry"] = industry
+
+            # Step 3: Fetch all NSE indices and look up the sector's index P/E
+            r_idx = session.get(
+                "https://www.nseindia.com/api/allIndices",
+                headers=headers,
+            )
+            if r_idx.status_code == 200:
+                sector = fundamentals["sector"]
+                target_index = _SECTOR_INDEX_MAP.get(sector)
+                if target_index:
+                    for idx in r_idx.json().get("data", []):
+                        if idx.get("indexSymbol") == target_index:
+                            idx_pe = idx.get("pe", 0)
+                            if idx_pe and float(idx_pe) > 0:
+                                fundamentals["sector_pe"] = float(idx_pe)
+                                print(f"NSE: PE={fundamentals['pe_ratio']}, SectorPE={fundamentals['sector_pe']} ({target_index})")
+                            break
+
+            if fundamentals["sector_pe"] == 0.0:
+                print(f"NSE: PE={fundamentals['pe_ratio']}, SectorPE=N/A for sector '{fundamentals['sector']}'")
+
     except Exception as e:
         print(f"NSE fundamentals fetch failed: {e}")
 
     return fundamentals
+
+
 
 
 

@@ -41,6 +41,7 @@ async def analyze(ticker: str):
             sentinel_score=score,
             score_category=category,
             company_details=ai_result.get("company_details", ""),
+            fundamental_analysis=ai_result.get("fundamental_analysis", ""),
             trend_summary=ai_result.get("trend_summary", ""),
             headline_impact=ai_result.get("headline_impact", ""),
             market_sentiment=ai_result.get("market_sentiment", ""),

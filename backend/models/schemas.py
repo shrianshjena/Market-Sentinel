@@ -19,6 +19,7 @@ class Analysis(BaseModel):
     sentinel_score: int
     score_category: str
     company_details: str
+    fundamental_analysis: str
     trend_summary: str
     headline_impact: str
     market_sentiment: str

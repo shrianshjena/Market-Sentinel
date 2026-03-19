@@ -62,6 +62,7 @@ Provide your analysis in the following STRICT JSON format (no markdown code bloc
 {{
   "company_details": "1-2 sentences on what the company does and its sector position.",
   "overall_context": "2-3 sentences on the broader market conditions or macroeconomic factors impacting this stock.",
+  "fundamental_analysis": "1-2 sentences contextualizing the stock's fundamental financial metrics (P/E, P/B, ROE) relative to its sector peers.",
   "trend_summary": "2-3 sentence analysis of the 5-year price trend. Is it in recovery, consolidation, or downtrend?",
   "headline_impact": "2-3 sentences analyzing the provided RECENT NEWS HEADLINES and how they affect the stock outlook.",
   "market_sentiment": "1-2 sentences detailing how institutional and retail investors are perceiving the stock based on the news.",
@@ -156,6 +157,7 @@ def _fallback_analysis() -> dict:
     return {
         "company_details": "Company details unavailable.",
         "overall_context": "Macro-economic context unavailable.",
+        "fundamental_analysis": "Fundamental valuation data is currently unavailable.",
         "trend_summary": "Unable to retrieve trend analysis at this time. The Intelligence Engine is recalibrating.",
         "headline_impact": "No recent headlines could be analyzed. Please try again shortly.",
         "market_sentiment": "Sentiment data cannot be computed.",

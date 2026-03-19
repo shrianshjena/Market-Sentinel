@@ -74,31 +74,63 @@ def _fetch_rss_helper(url: str, limit: int = 5) -> List[str]:
         print(f"Failed to fetch RSS from {url}: {e}")
     return headlines
 
-def fetch_stock_fundamentals(symbol: str) -> dict:
-    """Fetch Key Statistics and Financial Data using yfinance (handles crumb auth automatically)."""
-    import yfinance as yf
+def _get_yahoo_crumb_and_cookies() -> tuple:
+    """Fetch Yahoo Finance session cookies and crumb for authenticated API calls."""
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.3 Safari/605.1.15",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.9",
+    }
+    session = httpx.Client(follow_redirects=True, timeout=15.0)
+    try:
+        session.get("https://finance.yahoo.com/", headers=headers)
+        r = session.get("https://query2.finance.yahoo.com/v1/test/getcrumb", headers={**headers, "Accept": "application/json"})
+        if r.status_code == 200 and "Too Many" not in r.text:
+            return r.text.strip(), session
+    except Exception:
+        pass
+    return None, session
 
+
+def fetch_stock_fundamentals(symbol: str) -> dict:
+    """Fetch Key Statistics and Financial Data from Yahoo Finance using session+crumb."""
     symbol = symbol.strip().upper()
     yf_symbol = f"{symbol}.NS" if not symbol.endswith(('.NS', '.BO')) else symbol
 
     fundamentals = {"pe_ratio": 0.0, "pb_ratio": 0.0, "roe": 0.0, "sector": "Unknown", "industry": "Unknown"}
 
     try:
-        ticker = yf.Ticker(yf_symbol)
-        info = ticker.info
+        crumb, session = _get_yahoo_crumb_and_cookies()
+        if not crumb:
+            return fundamentals
 
-        pe = info.get("trailingPE") or info.get("forwardPE") or 0.0
-        pb = info.get("priceToBook") or 0.0
-        roe_raw = info.get("returnOnEquity") or 0.0
-        roe_pct = float(roe_raw) * 100 if roe_raw else 0.0
+        url = f"https://query2.finance.yahoo.com/v10/finance/quoteSummary/{yf_symbol}?modules=defaultKeyStatistics,financialData,summaryProfile&crumb={crumb}"
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.3 Safari/605.1.15",
+            "Accept": "application/json",
+        }
+        response = session.get(url, headers=headers, timeout=10.0)
+        session.close()
 
-        fundamentals["pe_ratio"] = float(pe) if pe else 0.0
-        fundamentals["pb_ratio"] = float(pb) if pb else 0.0
-        fundamentals["roe"] = float(roe_pct)
-        fundamentals["sector"] = str(info.get("sector") or "Unknown")
-        fundamentals["industry"] = str(info.get("industry") or "Unknown")
+        if response.status_code == 200:
+            data = response.json()
+            res = data.get("quoteSummary", {}).get("result", [])
+            if res:
+                stats = res[0].get("defaultKeyStatistics", {})
+                fin = res[0].get("financialData", {})
+                prof = res[0].get("summaryProfile", {})
+
+                pe = (stats.get("trailingPE") or {}).get("raw") or (stats.get("forwardPE") or {}).get("raw") or 0.0
+                pb = (stats.get("priceToBook") or {}).get("raw") or 0.0
+                roe_raw = (fin.get("returnOnEquity") or {}).get("raw") or 0.0
+
+                fundamentals["pe_ratio"] = float(pe)
+                fundamentals["pb_ratio"] = float(pb)
+                fundamentals["roe"] = float(roe_raw) * 100
+                fundamentals["sector"] = str(prof.get("sector") or "Unknown")
+                fundamentals["industry"] = str(prof.get("industry") or "Unknown")
     except Exception as e:
-        print(f"Failed to fetch fundamentals via yfinance: {e}")
+        print(f"Failed to fetch fundamentals: {e}")
 
     return fundamentals
 

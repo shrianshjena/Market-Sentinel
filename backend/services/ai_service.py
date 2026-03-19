@@ -9,7 +9,7 @@ from typing import List
 # Primary models
 GEMINI_MODEL = "gemini-1.5-flash"
 GROQ_MODEL = "llama-3.3-70b-versatile"
-HF_MODEL = "mistralai/Mixtral-8x7B-Instruct-v0.1"
+HF_MODEL = "meta-llama/Meta-Llama-3-8B-Instruct"
 
 
 def analyze_stock(
@@ -74,26 +74,26 @@ Provide your analysis in the following STRICT JSON format (no markdown code bloc
 
 IMPORTANT: Respond ONLY with the JSON object. Do not include introductory text, markdown code blocks, or explanations."""
 
-    # 1. Primary: Gemini
-    try:
-        if settings.gemini_api_key:
-             return _call_gemini(prompt)
-    except Exception as e:
-        print(f"Gemini failed: {e}. Falling back to Groq.")
-
-    # 2. Secondary: Groq
+    # 1. Primary: Groq
     try:
         if settings.groq_api_key:
              return _call_groq(prompt)
     except Exception as e:
         print(f"Groq failed: {e}. Falling back to Hugging Face.")
 
-    # 3. Tertiary: Hugging Face
+    # 2. Secondary: Hugging Face
     try:
         if settings.hf_api_key:
             return _call_hf(prompt)
     except Exception as e:
-        print(f"Hugging Face failed: {e}. All models degraded.")
+        print(f"Hugging Face failed: {e}. Falling back to Gemini.")
+
+    # 3. Tertiary: Gemini
+    try:
+        if settings.gemini_api_key:
+             return _call_gemini(prompt)
+    except Exception as e:
+        print(f"Gemini failed: {e}. All models degraded.")
 
     return _fallback_analysis()
 

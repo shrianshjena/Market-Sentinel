@@ -45,12 +45,13 @@ Analyze the stock {ticker} listed on NSE based on the following data:
 RECENT NEWS HEADLINES (Latest 2026 Context):
 {news_text}
 
-FUNDAMENTAL VALUATION (Live Metrics):
+FUNDAMENTAL VALUATION (Live Metrics from NSE):
 - Sector & Industry: {fundamentals.get('sector', 'Unknown')} - {fundamentals.get('industry', 'Unknown')}
-- P/E Ratio: {fundamentals.get('pe_ratio', 0.0)}
+- Stock P/E Ratio: {fundamentals.get('pe_ratio', 0.0)}
+- Sector Benchmark P/E: {fundamentals.get('sector_pe', 0.0)} (NSE sector average)
 - P/B Ratio: {fundamentals.get('pb_ratio', 0.0)}
 - Return on Equity (ROE): {fundamentals.get('roe', 0.0):.2f}%
-(CRITICAL: Evaluate the P/E ratio strictly relative to this specific sector and its industry peers instead of fixed thresholds.)
+(CRITICAL: Evaluate the stock P/E strictly relative to the Sector Benchmark P/E above. A stock trading at a premium/discount to its sector P/E has important implications for valuation.)
 
 HISTORICAL PRICE DATA (5-year window):
 - Current Price: INR {current_price:.2f}

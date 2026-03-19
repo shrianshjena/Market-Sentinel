@@ -78,40 +78,46 @@ def _score_price_trend(history: List[HistoricalPoint]) -> int:
     return max(0, min(100, trend_score + momentum_bonus))
 
 def _score_fundamentals(funds: dict) -> int:
-    """Score mathematically based on P/E relative to sector, P/B, and ROE metrics."""
+    """Score based on P/E relative to actual NSE sector P/E benchmark, P/B, and ROE."""
     score = 50
     pe = funds.get("pe_ratio", 0.0)
     pb = funds.get("pb_ratio", 0.0)
     roe = funds.get("roe", 0.0)
-    sector = funds.get("sector", "Unknown").lower()
-    
-    # Dynamic PE ideal bounds based on sector
-    ideal_pe = 25
-    if "technology" in sector or "software" in sector:
-        ideal_pe = 40
-    elif "materials" in sector or "metals" in sector or "mining" in sector:
-        ideal_pe = 15
-    elif "financial" in sector or "bank" in sector:
-        ideal_pe = 20
-    elif "consumer" in sector:
-        ideal_pe = 35
-        
-    # PE Contribution (Lower is better, relative to sector ideal)
-    if 0 < pe <= ideal_pe: score += 15
-    elif ideal_pe < pe <= ideal_pe * 1.5: score += 5
-    elif pe > ideal_pe * 2: score -= 10
-    
-    # PB Contribution (Lower is better, ideal < 3)
-    if 0 < pb <= 3: score += 15
-    elif 3 < pb <= 6: score += 5
-    elif pb > 10: score -= 10
-    
-    # ROE Contribution (Higher is better, ideal > 15)
-    if roe >= 15: score += 20
-    elif roe >= 8: score += 10
-    elif roe < 0: score -= 15
-    
+    sector_pe = funds.get("sector_pe", 0.0)
+
+    # --- P/E Scoring: relative to actual NSE sector benchmark ---
+    if pe > 0 and sector_pe > 0:
+        # Compare stock P/E to sector benchmark P/E
+        pe_ratio_to_sector = pe / sector_pe
+        if pe_ratio_to_sector <= 0.8:       score += 20   # Trading at >20% discount — undervalued
+        elif pe_ratio_to_sector <= 1.0:     score += 12   # Trading at or below sector average
+        elif pe_ratio_to_sector <= 1.3:     score += 4    # Modest premium (within acceptable range)
+        elif pe_ratio_to_sector <= 1.7:     score -= 5    # Notable premium — watch for overvaluation
+        else:                               score -= 15   # Significantly overvalued vs sector
+    elif pe > 0:
+        # Fallback: use dynamic sector-type ideals if sector_pe unavailable
+        sector = funds.get("sector", "").lower()
+        ideal_pe = 40 if "tech" in sector or "software" in sector else \
+                   15 if "material" in sector or "metal" in sector or "mining" in sector else \
+                   20 if "bank" in sector or "financ" in sector else 25
+        if 0 < pe <= ideal_pe:          score += 15
+        elif pe <= ideal_pe * 1.5:      score += 5
+        elif pe > ideal_pe * 2:         score -= 10
+
+    # --- P/B Scoring (Lower is better, ideal < 3) ---
+    if 0 < pb <= 1.5:     score += 15   # Excellent value
+    elif pb <= 3.0:       score += 8    # Good value
+    elif pb <= 6.0:       score += 2    # Moderate
+    elif pb > 10:         score -= 10   # Very expensive
+
+    # --- ROE Scoring (Higher is better) ---
+    if roe >= 20:         score += 20   # Excellent
+    elif roe >= 15:       score += 14
+    elif roe >= 8:        score += 7
+    elif roe < 0:         score -= 15   # Losing money on equity
+
     return max(0, min(100, score))
+
 
 
 def _score_headline_impact(headline_text: str) -> int:

@@ -11,6 +11,7 @@ class Fundamentals(BaseModel):
     pe_ratio: float
     pb_ratio: float
     roe: float
+    sector_pe: float = 0.0
     sector: str
     industry: str
 

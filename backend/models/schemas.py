@@ -7,6 +7,12 @@ class HistoricalPoint(BaseModel):
     close: float
 
 
+class Fundamentals(BaseModel):
+    pe_ratio: float
+    pb_ratio: float
+    roe: float
+
+
 class Analysis(BaseModel):
     sentinel_score: int
     score_category: str
@@ -30,6 +36,7 @@ class StockAnalysisResponse(BaseModel):
         current_price: float,
         historical_5y: List[HistoricalPoint],
         analysis: Analysis,
+        fundamentals: Fundamentals,
     ):
         return cls(
             status="success",
@@ -37,6 +44,7 @@ class StockAnalysisResponse(BaseModel):
                 "ticker": ticker,
                 "current_price": current_price,
                 "historical_5y": [h.model_dump() for h in historical_5y],
+                "fundamentals": fundamentals.model_dump(),
                 "analysis": analysis.model_dump(),
             },
         )

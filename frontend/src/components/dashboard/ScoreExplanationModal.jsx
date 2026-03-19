@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, TrendingUp, Newspaper, MessageSquare, Globe } from 'lucide-react'
+import { X, TrendingUp, Newspaper, MessageSquare, Globe, PieChart } from 'lucide-react'
 import useStockStore from '../../store/useStockStore'
 
 export default function ScoreExplanationModal() {
@@ -49,11 +49,25 @@ export default function ScoreExplanationModal() {
               </div>
               <div className="flex-1">
                 <h3 className="text-white font-semibold flex items-center gap-2">
-                  Price Trend <span className="text-xs px-2 py-0.5 rounded-full bg-white/10 text-white/70">40% Weight</span>
+                  Price Trend <span className="text-xs px-2 py-0.5 rounded-full bg-white/10 text-white/70">20% Weight</span>
                 </h3>
                 <p className="text-sm text-white/40 mt-1 leading-relaxed">
                   Evaluates the absolute historical momentum across the past 5 years of trading sessions. 
-                  High scores require significant, sustained bullish catalysts (+150% returns map to absolute 100/100).
+                  High scores require significant, sustained bullish catalysts (+300% returns map to absolute 100/100).
+                </p>
+              </div>
+            </div>
+
+            <div className="flex gap-4 items-start">
+              <div className="p-3 rounded-xl bg-indigo-500/10 text-indigo-400">
+                <PieChart className="w-6 h-6" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-white font-semibold flex items-center gap-2">
+                  Fundamental Valuation <span className="text-xs px-2 py-0.5 rounded-full bg-white/10 text-white/70">20% Weight</span>
+                </h3>
+                <p className="text-sm text-white/40 mt-1 leading-relaxed">
+                  Calculates intrinsic financial health by scaling real-time P/E (Price-to-Earnings) ratios, P/B (Price-to-Book) metrics, and ROE (Return on Equity). Punishes overhyped valuations while deeply rewarding fundamentally sound equities.
                 </p>
               </div>
             </div>

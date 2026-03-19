@@ -18,7 +18,7 @@ export default function BentoGrid() {
 
   if (!stockData) return null
 
-  const { current_price, historical_5y, analysis } = stockData
+  const { current_price, historical_5y, analysis, fundamentals } = stockData
   const tickerLabel = getTicker3DConfig(selectedTicker).label
 
   return (
@@ -113,7 +113,11 @@ export default function BentoGrid() {
           <div className="space-y-1.5 text-xs w-full">
             <div className="flex justify-between text-white/60">
               <span>Price Trend</span>
-              <span className="text-white/80">40%</span>
+              <span className="text-white/80">20%</span>
+            </div>
+            <div className="flex justify-between text-white/60">
+              <span>Fundamentals</span>
+              <span className="text-white/80">20%</span>
             </div>
             <div className="flex justify-between text-white/60">
               <span>Headlines</span>

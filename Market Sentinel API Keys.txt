@@ -1,2 +1,0 @@
-Groq API Key: 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
-Gemini API Key: AIzaSyBczwtCpsKZYyyA7CIfzc9BD5kkRkAs3a0

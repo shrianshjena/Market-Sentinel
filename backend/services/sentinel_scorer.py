@@ -21,13 +21,15 @@ def classify(score: int) -> str:
 def compute_sentinel_score(
     price_history: List[HistoricalPoint],
     gemini_analysis: dict,
+    fundamentals: dict = None
 ) -> int:
     """
-    Compute the Sentinel Score using weighted factors:
-    - 40% Price Trend (Historical)
+    Compute the Sentinel Score using evenly weighted 5 factors:
+    - 20% Price Trend (Historical 300% Capped)
     - 20% Headline Impact (Live News)
     - 20% Sentiment Consistency
     - 20% Macro Context
+    - 20% Fundamental Valuation
     """
     price_trend_score = _score_price_trend(price_history)
     headline_score = _score_headline_impact(
@@ -39,12 +41,16 @@ def compute_sentinel_score(
     macro_score = _score_macro_context(
         gemini_analysis.get("overall_context", "")
     )
+    
+    fundamentals = fundamentals or {}
+    fundamental_score = _score_fundamentals(fundamentals)
 
     final = int(
-        0.4 * price_trend_score
+        0.2 * price_trend_score
         + 0.2 * headline_score
         + 0.2 * sentiment_score
         + 0.2 * macro_score
+        + 0.2 * fundamental_score
     )
     return max(0, min(100, final))
 
@@ -65,11 +71,35 @@ def _score_price_trend(history: List[HistoricalPoint]) -> int:
     else:
         momentum = 0
 
-    # Map total_return to 0-100 scale (-150% -> 0, +150% -> 100 on 5-year scale)
-    trend_score = max(0, min(100, int(50 + (total_return / 3))))
+    # Map total_return to 0-100 scale (-300% -> 0, +300% -> 100 on 5-year scale)
+    trend_score = max(0, min(100, int(50 + (total_return / 6))))
     momentum_bonus = max(-15, min(15, int(momentum * 3)))
 
     return max(0, min(100, trend_score + momentum_bonus))
+
+def _score_fundamentals(funds: dict) -> int:
+    """Score mathematically based on P/E, P/B, and ROE metrics."""
+    score = 50
+    pe = funds.get("pe_ratio", 0.0)
+    pb = funds.get("pb_ratio", 0.0)
+    roe = funds.get("roe", 0.0)
+    
+    # PE Contribution (Lower is better, ideal 10-25)
+    if 0 < pe <= 20: score += 15
+    elif 20 < pe <= 35: score += 5
+    elif pe > 40: score -= 10
+    
+    # PB Contribution (Lower is better, ideal < 3)
+    if 0 < pb <= 3: score += 15
+    elif 3 < pb <= 6: score += 5
+    elif pb > 10: score -= 10
+    
+    # ROE Contribution (Higher is better, ideal > 15)
+    if roe >= 15: score += 20
+    elif roe >= 8: score += 10
+    elif roe < 0: score -= 15
+    
+    return max(0, min(100, score))
 
 
 def _score_headline_impact(headline_text: str) -> int:

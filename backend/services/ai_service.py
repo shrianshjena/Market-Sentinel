@@ -15,6 +15,7 @@ def analyze_stock(
     current_price: float,
     price_history: List[HistoricalPoint],
     news_context: List[str],
+    fundamentals: dict,
 ) -> dict:
     """
     Generate comprehensive insights using Groq -> Hugging Face fallback.
@@ -41,6 +42,11 @@ Analyze the stock {ticker} listed on NSE based on the following data:
 
 RECENT NEWS HEADLINES (Latest 2026 Context):
 {news_text}
+
+FUNDAMENTAL VALUATION (Live Metrics):
+- P/E Ratio: {fundamentals.get('pe_ratio', 0.0)}
+- P/B Ratio: {fundamentals.get('pb_ratio', 0.0)}
+- Return on Equity (ROE): {fundamentals.get('roe', 0.0):.2f}%
 
 HISTORICAL PRICE DATA (5-year window):
 - Current Price: INR {current_price:.2f}

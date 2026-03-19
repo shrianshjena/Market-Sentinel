@@ -141,27 +141,22 @@ def _call_groq(prompt: str) -> dict:
 
 
 def _call_hf(prompt: str) -> dict:
-    url = f"https://api-inference.huggingface.co/models/{HF_MODEL}"
+    """Call Hugging Face Inference API using the chat completions format."""
+    url = f"https://api-inference.huggingface.co/models/{HF_MODEL}/v1/chat/completions"
     headers = {
         "Authorization": f"Bearer {settings.hf_api_key}",
         "Content-Type": "application/json"
     }
-    
-    # Mistral format
-    formatted_prompt = f"<s>[INST] {prompt} [/INST]"
-    
     data = {
-        "inputs": formatted_prompt,
-        "parameters": {"max_new_tokens": 1024, "return_full_text": False}
+        "model": HF_MODEL,
+        "messages": [{"role": "user", "content": prompt}],
+        "max_tokens": 1500,
+        "stream": False,
     }
     with httpx.Client(timeout=30.0) as client:
         response = client.post(url, headers=headers, json=data)
         response.raise_for_status()
-        res_json = response.json()
-        if isinstance(res_json, list) and len(res_json) > 0:
-            text = res_json[0].get("generated_text", "")
-        else:
-            text = str(res_json)
+        text = response.json()["choices"][0]["message"]["content"]
         return _parse_response(text)
 
 
@@ -187,12 +182,12 @@ def _parse_response(text: str) -> dict:
 
 def _fallback_analysis(last_error: str = "Unknown error") -> dict:
     """Return a neutral fallback if all AIs fail."""
-    print(f"All AI providers failed. Last error: {last_error}")
+    print(f"[FALLBACK] All AI providers failed. Last error: {last_error}")
     return {
         "company_details": "Company details unavailable.",
         "overall_context": "Macro-economic context unavailable.",
         "fundamental_analysis": "Fundamental valuation data is currently unavailable.",
-        "trend_summary": "Unable to retrieve trend analysis at this time. The Intelligence Engine is recalibrating.",
+        "trend_summary": f"[AI_ERR] {last_error[:120]}",
         "headline_impact": "No recent headlines could be analyzed. Please try again shortly.",
         "market_sentiment": "Sentiment data cannot be computed.",
         "sentiment_consistency": "Sentiment consistency unavailable.",

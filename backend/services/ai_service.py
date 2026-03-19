@@ -45,12 +45,11 @@ Analyze the stock {ticker} listed on NSE based on the following data:
 RECENT NEWS HEADLINES (Latest 2026 Context):
 {news_text}
 
-FUNDAMENTAL VALUATION (Live Metrics from NSE):
-- Sector & Industry: {fundamentals.get('sector', 'Unknown')} - {fundamentals.get('industry', 'Unknown')}
+FUNDAMENTAL VALUATION (Live from NSE):
+- Sector & Industry: {fundamentals.get('sector', 'Unknown')} — {fundamentals.get('industry', 'Unknown')}
 - Stock P/E Ratio: {fundamentals.get('pe_ratio', 0.0)}
 - Sector Benchmark P/E: {fundamentals.get('sector_pe', 0.0)} (NSE sector average)
-- P/B Ratio: {fundamentals.get('pb_ratio', 0.0)}
-(CRITICAL: Evaluate the stock P/E strictly relative to the Sector Benchmark P/E above. A stock trading at a premium/discount to its sector P/E has important valuation implications. Use P/B to assess whether the market values the stock above or below its book value.)
+(Evaluate the stock P/E relative to the sector P/E. If the stock trades at a premium to its sector P/E, explain why. If at a discount, highlight the opportunity. Always comment on valuation relative to peers.)
 
 HISTORICAL PRICE DATA (5-year window):
 - Current Price: INR {current_price:.2f}
@@ -187,7 +186,7 @@ def _fallback_analysis(last_error: str = "Unknown error") -> dict:
         "company_details": "Company details unavailable.",
         "overall_context": "Macro-economic context unavailable.",
         "fundamental_analysis": "Fundamental valuation data is currently unavailable.",
-        "trend_summary": f"[AI_ERR] {last_error[:120]}",
+        "trend_summary": "Unable to retrieve trend analysis at this time. The Intelligence Engine is recalibrating.",
         "headline_impact": "No recent headlines could be analyzed. Please try again shortly.",
         "market_sentiment": "Sentiment data cannot be computed.",
         "sentiment_consistency": "Sentiment consistency unavailable.",

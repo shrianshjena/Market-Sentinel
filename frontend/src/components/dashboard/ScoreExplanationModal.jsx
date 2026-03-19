@@ -67,7 +67,7 @@ export default function ScoreExplanationModal() {
                   Fundamental Valuation <span className="text-xs px-2 py-0.5 rounded-full bg-white/10 text-white/70">20% Weight</span>
                 </h3>
                 <p className="text-sm text-white/40 mt-1 leading-relaxed">
-                  Evaluates real-time valuation metrics sourced from NSE and Yahoo Finance. P/E ratio is benchmarked against the live NSE sector average — rewarding undervalued equities and penalising overpriced ones. P/B ratio assesses whether the market values the stock above or below its book value.
+                  Benchmarks the stock's live P/E ratio against the NSE sector average P/E in real time. Stocks trading at a discount to their sector peers are rewarded; stocks at a significant premium are penalised. Sector context is sourced directly from NSE's official API.
                 </p>
               </div>
             </div>

@@ -9,7 +9,6 @@ class HistoricalPoint(BaseModel):
 
 class Fundamentals(BaseModel):
     pe_ratio: float
-    pb_ratio: float
     sector_pe: float = 0.0
     sector: str
     industry: str

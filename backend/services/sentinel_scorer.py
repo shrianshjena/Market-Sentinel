@@ -79,47 +79,34 @@ def _score_price_trend(history: List[HistoricalPoint]) -> int:
 
 def _score_fundamentals(funds: dict) -> int:
     """
-    Score based on:
-    - P/E vs actual NSE sector P/E benchmark (primary signal, 60% weight within factor)
-    - P/B ratio (secondary signal, 40% weight within factor)
+    Score based purely on P/E vs NSE sector P/E benchmark.
+    Range: 20 (severely overvalued) to 80 (deeply undervalued).
     """
     score = 50
     pe = funds.get("pe_ratio", 0.0)
-    pb = funds.get("pb_ratio", 0.0)
     sector_pe = funds.get("sector_pe", 0.0)
 
-    # ── P/E vs Sector Benchmark (Primary, max ±25 pts) ──────────────────────
     if pe > 0 and sector_pe > 0:
-        ratio = pe / sector_pe
-        if ratio <= 0.7:       score += 25   # Deep discount — significantly undervalued
-        elif ratio <= 0.9:     score += 18   # Modest discount — good value
-        elif ratio <= 1.1:     score += 10   # Inline with sector — fair value
-        elif ratio <= 1.4:     score += 2    # Modest premium — acceptable
-        elif ratio <= 1.8:     score -= 8    # Notable premium — elevated valuation
-        else:                  score -= 20   # Severe premium — overvalued
+        ratio = pe / sector_pe          # 1.0 = exactly at sector average
+        if ratio <= 0.6:    score += 30  # Deep discount — major undervalue
+        elif ratio <= 0.8:  score += 20  # Meaningful discount — good value
+        elif ratio <= 1.0:  score += 10  # Slight discount — fair
+        elif ratio <= 1.2:  score += 2   # Slight premium — acceptable
+        elif ratio <= 1.5:  score -= 10  # Notable premium — elevated
+        elif ratio <= 2.0:  score -= 20  # Significant premium — expensive
+        else:               score -= 30  # Severe premium — overvalued
     elif pe > 0:
-        # Fallback when no sector PE: use typical base multiples
+        # Fallback with no sector benchmark: use broad industry defaults
         sector = funds.get("sector", "").lower()
-        base = 40 if "tech" in sector or "software" in sector else \
-               15 if "metal" in sector or "material" in sector or "mining" in sector else \
-               18 if "bank" in sector or "financ" in sector else 25
-        if pe <= base * 0.8:      score += 20
-        elif pe <= base:          score += 10
-        elif pe <= base * 1.3:    score += 2
-        elif pe > base * 2:       score -= 15
+        base = (40 if "tech" in sector or "software" in sector else
+                15 if "metal" in sector or "material" in sector or "mining" in sector else
+                18 if "bank" in sector or "financ" in sector else 25)
+        if pe <= base * 0.8:   score += 20
+        elif pe <= base:       score += 8
+        elif pe <= base * 1.3: score += 0
+        elif pe > base * 2:    score -= 20
 
-    # ── P/B Ratio (Secondary, max ±25 pts) ──────────────────────────────────
-    if pb > 0:
-        if pb <= 1.0:      score += 25   # Trading near or below book — exceptional value
-        elif pb <= 2.0:    score += 16   # Good value
-        elif pb <= 3.5:    score += 8    # Moderate — market prices in growth
-        elif pb <= 6.0:    score += 1    # Slightly elevated
-        elif pb <= 10.0:   score -= 8    # Expensive
-        else:              score -= 20   # Highly overpriced vs book
-
-    return max(0, min(100, score))
-
-
+    return max(20, min(80, score))
 
 def _score_headline_impact(headline_text: str) -> int:
     """Score headlines via keyword analysis."""

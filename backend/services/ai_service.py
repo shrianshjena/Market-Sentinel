@@ -1,7 +1,7 @@
 import json
 import re
 import httpx
-import google.generativeai as genai
+# NOTE: No google.generativeai import — calls Gemini REST API directly via httpx to avoid grpcio (60MB)
 from config import settings
 from models.schemas import HistoricalPoint
 from typing import List
@@ -104,16 +104,22 @@ IMPORTANT: Respond ONLY with the JSON object. Do not include introductory text, 
 
 
 def _call_gemini(prompt: str) -> dict:
-    genai.configure(api_key=settings.gemini_api_key)
-    model = genai.GenerativeModel(GEMINI_MODEL)
-    response = model.generate_content(
-        prompt,
-        generation_config=genai.types.GenerationConfig(
-            temperature=0.2,
-            response_mime_type="application/json",
-        ),
-    )
-    return _parse_response(response.text)
+    """Call Gemini 1.5 Flash via REST API directly (no grpcio dependency)."""
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={settings.gemini_api_key}"
+    headers = {"Content-Type": "application/json"}
+    body = {
+        "contents": [{"parts": [{"text": prompt}]}],
+        "generationConfig": {
+            "temperature": 0.2,
+            "responseMimeType": "application/json",
+        },
+    }
+    with httpx.Client(timeout=30.0) as client:
+        response = client.post(url, headers=headers, json=body)
+        response.raise_for_status()
+        data = response.json()
+        text = data["candidates"][0]["content"]["parts"][0]["text"]
+        return _parse_response(text)
 
 
 def _call_groq(prompt: str) -> dict:

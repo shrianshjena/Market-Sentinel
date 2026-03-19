@@ -78,16 +78,28 @@ def _score_price_trend(history: List[HistoricalPoint]) -> int:
     return max(0, min(100, trend_score + momentum_bonus))
 
 def _score_fundamentals(funds: dict) -> int:
-    """Score mathematically based on P/E, P/B, and ROE metrics."""
+    """Score mathematically based on P/E relative to sector, P/B, and ROE metrics."""
     score = 50
     pe = funds.get("pe_ratio", 0.0)
     pb = funds.get("pb_ratio", 0.0)
     roe = funds.get("roe", 0.0)
+    sector = funds.get("sector", "Unknown").lower()
     
-    # PE Contribution (Lower is better, ideal 10-25)
-    if 0 < pe <= 20: score += 15
-    elif 20 < pe <= 35: score += 5
-    elif pe > 40: score -= 10
+    # Dynamic PE ideal bounds based on sector
+    ideal_pe = 25
+    if "technology" in sector or "software" in sector:
+        ideal_pe = 40
+    elif "materials" in sector or "metals" in sector or "mining" in sector:
+        ideal_pe = 15
+    elif "financial" in sector or "bank" in sector:
+        ideal_pe = 20
+    elif "consumer" in sector:
+        ideal_pe = 35
+        
+    # PE Contribution (Lower is better, relative to sector ideal)
+    if 0 < pe <= ideal_pe: score += 15
+    elif ideal_pe < pe <= ideal_pe * 1.5: score += 5
+    elif pe > ideal_pe * 2: score -= 10
     
     # PB Contribution (Lower is better, ideal < 3)
     if 0 < pb <= 3: score += 15

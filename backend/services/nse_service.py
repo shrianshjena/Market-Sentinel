@@ -82,12 +82,12 @@ def fetch_stock_fundamentals(symbol: str) -> dict:
     else:
         yf_symbol = symbol
         
-    url = f"https://query2.finance.yahoo.com/v10/finance/quoteSummary/{yf_symbol}?modules=defaultKeyStatistics,financialData"
+    url = f"https://query2.finance.yahoo.com/v10/finance/quoteSummary/{yf_symbol}?modules=defaultKeyStatistics,financialData,summaryProfile"
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)"
     }
     
-    fundamentals = {"pe_ratio": 0.0, "pb_ratio": 0.0, "roe": 0.0}
+    fundamentals = {"pe_ratio": 0.0, "pb_ratio": 0.0, "roe": 0.0, "sector": "Unknown", "industry": "Unknown"}
     
     try:
         with httpx.Client(timeout=10.0) as client:
@@ -98,6 +98,7 @@ def fetch_stock_fundamentals(symbol: str) -> dict:
                 if res and len(res) > 0:
                     stats = res[0].get("defaultKeyStatistics", {})
                     fin = res[0].get("financialData", {})
+                    prof = res[0].get("summaryProfile", {})
                     
                     pe = stats.get("trailingPE", {}).get("raw", stats.get("forwardPE", {}).get("raw", 0.0))
                     pb = stats.get("priceToBook", {}).get("raw", 0.0)
@@ -107,6 +108,8 @@ def fetch_stock_fundamentals(symbol: str) -> dict:
                     fundamentals["pe_ratio"] = float(pe) if pe else 0.0
                     fundamentals["pb_ratio"] = float(pb) if pb else 0.0
                     fundamentals["roe"] = float(roe_pct) if roe_pct else 0.0
+                    fundamentals["sector"] = prof.get("sector", "Unknown")
+                    fundamentals["industry"] = prof.get("industry", "Unknown")
     except Exception as e:
         print(f"Failed to fetch fundamentals: {e}")
         

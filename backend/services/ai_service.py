@@ -44,9 +44,11 @@ RECENT NEWS HEADLINES (Latest 2026 Context):
 {news_text}
 
 FUNDAMENTAL VALUATION (Live Metrics):
+- Sector & Industry: {fundamentals.get('sector', 'Unknown')} - {fundamentals.get('industry', 'Unknown')}
 - P/E Ratio: {fundamentals.get('pe_ratio', 0.0)}
 - P/B Ratio: {fundamentals.get('pb_ratio', 0.0)}
 - Return on Equity (ROE): {fundamentals.get('roe', 0.0):.2f}%
+(CRITICAL: Evaluate the P/E ratio strictly relative to this specific sector and its industry peers instead of fixed thresholds.)
 
 HISTORICAL PRICE DATA (5-year window):
 - Current Price: INR {current_price:.2f}

@@ -8,10 +8,10 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
 from config import settings
-from services.nse_service import fetch_stock_data, fetch_stock_news
+from services.nse_service import fetch_stock_data, fetch_stock_news, fetch_stock_fundamentals
 from services.ai_service import analyze_stock
 from services.sentinel_scorer import compute_sentinel_score, classify
-from models.schemas import Analysis, StockAnalysisResponse
+from models.schemas import Analysis, StockAnalysisResponse, Fundamentals
 
 app = FastAPI(title="Market Sentinel API")
 
@@ -30,8 +30,11 @@ async def analyze(ticker: str):
     try:
         current_price, historical = fetch_stock_data(ticker)
         news_context = fetch_stock_news(ticker)
-        ai_result = analyze_stock(ticker, current_price, historical, news_context)
-        score = compute_sentinel_score(historical, ai_result)
+        fun_dict = fetch_stock_fundamentals(ticker)
+        fundamentals = Fundamentals(**fun_dict)
+        
+        ai_result = analyze_stock(ticker, current_price, historical, news_context, fun_dict)
+        score = compute_sentinel_score(historical, ai_result, fun_dict)
         category = classify(score)
 
         analysis = Analysis(
@@ -51,6 +54,7 @@ async def analyze(ticker: str):
             current_price=current_price,
             historical_5y=historical,
             analysis=analysis,
+            fundamentals=fundamentals,
         )
 
     except ValueError as e:

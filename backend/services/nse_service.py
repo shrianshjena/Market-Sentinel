@@ -76,10 +76,13 @@ def _fetch_rss_helper(url: str, limit: int = 5) -> List[str]:
 
 def fetch_stock_fundamentals(symbol: str) -> dict:
     """
-    Dual-source fundamental data fetcher:
+    Dual-source fundamental data fetcher (runs in parallel):
     - NSE official API: P/E ratio, Sector P/E benchmark, Sector, Industry
-    - Yahoo Finance (fc.yahoo.com crumb): P/B ratio, ROE
+    - Yahoo Finance (fc.yahoo.com crumb): P/B ratio
+    Both sources run concurrently to keep total latency under 10s.
     """
+    import concurrent.futures
+
     symbol = symbol.strip().upper()
     nse_symbol = symbol.replace(".NS", "").replace(".BO", "")
     yf_symbol = f"{nse_symbol}.NS"
@@ -92,60 +95,60 @@ def fetch_stock_fundamentals(symbol: str) -> dict:
         "industry": "Unknown",
     }
 
-    base_headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "Accept": "application/json, text/plain, */*",
-        "Accept-Language": "en-US,en;q=0.9",
-    }
+    UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 
-    # ── Source 1: NSE API for P/E and Sector data ──────────────────────────
-    try:
-        nse_headers = {**base_headers, "Referer": "https://www.nseindia.com/"}
-        with httpx.Client(follow_redirects=True, timeout=20.0) as session:
-            session.get("https://www.nseindia.com/", headers=nse_headers)
-            url = f"https://www.nseindia.com/api/quote-equity?symbol={nse_symbol}"
-            response = session.get(url, headers=nse_headers)
-            if response.status_code == 200:
-                data = response.json()
-                metadata = data.get("metadata", {})
-                industry_info = data.get("industryInfo", {})
-                pe = metadata.get("pdSymbolPe", 0.0)
-                sector_pe = metadata.get("pdSectorPe", 0.0)
-                sector = industry_info.get("sector", "Unknown")
-                industry = industry_info.get("industry", industry_info.get("basicIndustry", "Unknown"))
-                fundamentals["pe_ratio"] = float(pe) if pe else 0.0
-                fundamentals["sector_pe"] = float(sector_pe) if sector_pe else 0.0
-                fundamentals["sector"] = str(sector or "Unknown")
-                fundamentals["industry"] = str(industry or "Unknown")
-                print(f"NSE: PE={pe}, SectorPE={sector_pe}, Sector={sector}")
-    except Exception as e:
-        print(f"NSE fetch failed: {e}")
-
-    # ── Source 2: Yahoo Finance for P/B and ROE (via fc.yahoo.com crumb) ───
-    try:
-        yf_headers = {**base_headers, "Accept": "*/*"}
-        with httpx.Client(follow_redirects=True, timeout=15.0) as session:
-            # Acquire Yahoo consent cookie + crumb
-            session.get("https://fc.yahoo.com", headers=yf_headers)
-            r_crumb = session.get("https://query1.finance.yahoo.com/v1/test/getcrumb", headers=yf_headers)
-            if r_crumb.status_code == 200:
-                crumb = r_crumb.text.strip()
-                url = (
-                    f"https://query1.finance.yahoo.com/v10/finance/quoteSummary/{yf_symbol}"
-                    f"?modules=defaultKeyStatistics,financialData&crumb={crumb}"
-                )
-                r = session.get(url, headers={**yf_headers, "Accept": "application/json"})
+    def _fetch_nse():
+        result = {}
+        try:
+            headers = {"User-Agent": UA, "Accept": "application/json", "Referer": "https://www.nseindia.com/"}
+            with httpx.Client(follow_redirects=True, timeout=8.0) as s:
+                s.get("https://www.nseindia.com/", headers=headers)
+                r = s.get(f"https://www.nseindia.com/api/quote-equity?symbol={nse_symbol}", headers=headers)
                 if r.status_code == 200:
-                    result = r.json().get("quoteSummary", {}).get("result", [{}])[0]
-                    stats = result.get("defaultKeyStatistics", {})
-                    pb = (stats.get("priceToBook") or {}).get("raw", 0.0)
-                    if pb:
-                        fundamentals["pb_ratio"] = float(pb)
-                    print(f"Yahoo: PB={pb}")
-    except Exception as e:
-        print(f"Yahoo fetch failed: {e}")
+                    data = r.json()
+                    meta = data.get("metadata", {})
+                    ind = data.get("industryInfo", {})
+                    result["pe_ratio"] = float(meta.get("pdSymbolPe") or 0.0)
+                    result["sector_pe"] = float(meta.get("pdSectorPe") or 0.0)
+                    result["sector"] = str(ind.get("sector") or "Unknown")
+                    result["industry"] = str(ind.get("industry") or ind.get("basicIndustry") or "Unknown")
+                    print(f"NSE: PE={result['pe_ratio']}, SectorPE={result['sector_pe']}")
+        except Exception as e:
+            print(f"NSE fetch failed: {e}")
+        return result
 
+    def _fetch_yahoo_pb():
+        result = {}
+        try:
+            headers = {"User-Agent": UA, "Accept": "*/*"}
+            with httpx.Client(follow_redirects=True, timeout=8.0) as s:
+                s.get("https://fc.yahoo.com", headers=headers)
+                r_crumb = s.get("https://query1.finance.yahoo.com/v1/test/getcrumb", headers=headers)
+                if r_crumb.status_code == 200:
+                    crumb = r_crumb.text.strip()
+                    url = f"https://query1.finance.yahoo.com/v10/finance/quoteSummary/{yf_symbol}?modules=defaultKeyStatistics&crumb={crumb}"
+                    r = s.get(url, headers={**headers, "Accept": "application/json"})
+                    if r.status_code == 200:
+                        stats = r.json().get("quoteSummary", {}).get("result", [{}])[0].get("defaultKeyStatistics", {})
+                        pb = (stats.get("priceToBook") or {}).get("raw", 0.0)
+                        if pb:
+                            result["pb_ratio"] = float(pb)
+                            print(f"Yahoo: PB={pb}")
+        except Exception as e:
+            print(f"Yahoo fetch failed: {e}")
+        return result
+
+    # Run both sources in parallel
+    with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
+        fut_nse = executor.submit(_fetch_nse)
+        fut_yf = executor.submit(_fetch_yahoo_pb)
+        nse_data = fut_nse.result(timeout=12)
+        yf_data = fut_yf.result(timeout=12)
+
+    fundamentals.update(nse_data)
+    fundamentals.update(yf_data)
     return fundamentals
+
 
 
 

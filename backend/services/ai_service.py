@@ -1,5 +1,6 @@
 import json
 import re
+import time
 import httpx
 # NOTE: No google.generativeai import — calls Gemini REST API directly via httpx to avoid grpcio (60MB)
 from config import settings
@@ -7,9 +8,12 @@ from models.schemas import HistoricalPoint
 from typing import List
 
 # Primary models
-GEMINI_MODEL = "gemini-1.5-flash"
+GEMINI_MODEL = "gemini-2.5-flash"
 GROQ_MODEL = "llama-3.3-70b-versatile"
-HF_MODEL = "meta-llama/Meta-Llama-3-8B-Instruct"
+HF_MODEL = "Qwen/Qwen2.5-72B-Instruct"
+
+# Groq rate-limit retry: wait this many seconds before a single retry on 429
+_GROQ_RETRY_WAIT = 3
 
 
 def analyze_stock(
@@ -20,7 +24,8 @@ def analyze_stock(
     fundamentals: dict,
 ) -> dict:
     """
-    Generate comprehensive insights using Groq -> Hugging Face fallback.
+    Generate comprehensive insights using Groq -> Hugging Face -> Gemini fallback.
+    Handles Groq 429 rate-limits gracefully with a single retry before falling through.
     Injects dynamic 2026 news to ground the LLM's knowledge.
     """
     prices = [p.close for p in price_history]
@@ -38,7 +43,7 @@ def analyze_stock(
 
     prompt = f"""You are a Senior Equity Research Analyst specializing in Indian markets (NSE).
 
-CRITICAL CONTEXT: Today's date is March 19, 2026. You MUST analyze the provided Recent News Headlines (which reflect the latest 2026 data, including any recent financial performance, product launches, or partnerships) and the stock price data to formulate your insights. Do not use outdated 2024 information.
+CRITICAL CONTEXT: Today's date is March 20, 2026. You MUST analyze the provided Recent News Headlines (which reflect the latest 2026 data, including any recent financial performance, product launches, or partnerships) and the stock price data to formulate your insights. Do not use outdated 2024 information.
 
 Analyze the stock {ticker} listed on NSE based on the following data:
 
@@ -56,7 +61,9 @@ HISTORICAL PRICE DATA (5-year window):
 - 5-Year Price Range: INR {price_min:.2f} to INR {price_max:.2f}
 - 5-Year Return: {pct_change:+.2f}%
 - Recent 5-day prices: {[round(p, 2) for p in last_5]}
-- Total data points: {len(prices)}
+- Sampled Price History (Monthly/Weekly snapshots):
+{_summarize_history(price_history)}
+- Total original data points: {len(prices)}
 
 Provide your analysis in the following STRICT JSON format (no markdown code blocks, no explanatory text, return ONLY valid json):
 
@@ -75,36 +82,60 @@ IMPORTANT: Respond ONLY with the JSON object. Do not include introductory text, 
 
     last_error = "No API keys configured."
 
-    # 1. Primary: Groq
-    try:
-        if settings.groq_api_key:
-             return _call_groq(prompt)
-    except Exception as e:
-        last_error = str(e)
-        print(f"Groq Error: {last_error}")
+    # 1. Primary: Groq (with 429 retry)
+    if settings.groq_api_key:
+        for attempt in range(2):  # attempt 0 = first try, attempt 1 = retry after wait
+            try:
+                return _call_groq(prompt)
+            except httpx.HTTPStatusError as e:
+                if e.response.status_code == 429:
+                    if attempt == 0:
+                        retry_after = int(e.response.headers.get("retry-after", _GROQ_RETRY_WAIT))
+                        wait = min(retry_after, 10)  # cap at 10s
+                        print(f"Groq 429 rate-limited. Retrying in {wait}s...")
+                        time.sleep(wait)
+                        continue
+                    else:
+                        last_error = f"Groq rate-limited (429) — falling through to next provider."
+                        print(f"Groq {last_error}")
+                        break
+                else:
+                    last_error = str(e)
+                    print(f"Groq HTTP Error ({e.response.status_code}): {last_error}")
+                    break
+            except Exception as e:
+                last_error = str(e)
+                print(f"Groq Error: {last_error}")
+                break
 
     # 2. Secondary: Hugging Face
-    try:
-        if settings.hf_api_key:
+    if settings.hf_api_key:
+        try:
             return _call_hf(prompt)
-    except Exception as e:
-        last_error = str(e)
-        print(f"HF Error: {last_error}")
+        except httpx.HTTPStatusError as e:
+            last_error = f"HF HTTP Error ({e.response.status_code}): {e}"
+            print(last_error)
+        except Exception as e:
+            last_error = str(e)
+            print(f"HF Error: {last_error}")
 
     # 3. Tertiary: Gemini
-    try:
-        if settings.gemini_api_key:
-             return _call_gemini(prompt)
-    except Exception as e:
-        last_error = str(e)
-        print(f"Gemini Error: {last_error}")
+    if settings.gemini_api_key:
+        try:
+            return _call_gemini(prompt)
+        except httpx.HTTPStatusError as e:
+            last_error = f"Gemini HTTP Error ({e.response.status_code}): {e}"
+            print(last_error)
+        except Exception as e:
+            last_error = str(e)
+            print(f"Gemini Error: {last_error}")
 
     return _fallback_analysis(last_error)
 
 
 def _call_gemini(prompt: str) -> dict:
     """Call Gemini 1.5 Flash via REST API directly (no grpcio dependency)."""
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={settings.gemini_api_key}"
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent?key={settings.gemini_api_key}"
     headers = {"Content-Type": "application/json"}
     body = {
         "contents": [{"parts": [{"text": prompt}]}],
@@ -113,7 +144,7 @@ def _call_gemini(prompt: str) -> dict:
             "responseMimeType": "application/json",
         },
     }
-    with httpx.Client(timeout=30.0) as client:
+    with httpx.Client(timeout=45.0) as client:
         response = client.post(url, headers=headers, json=body)
         response.raise_for_status()
         data = response.json()
@@ -130,9 +161,10 @@ def _call_groq(prompt: str) -> dict:
     data = {
         "model": GROQ_MODEL,
         "messages": [{"role": "user", "content": prompt}],
-        "temperature": 0.2
+        "temperature": 0.2,
+        "max_tokens": 1500,
     }
-    with httpx.Client(timeout=30.0) as client:
+    with httpx.Client(timeout=45.0) as client:
         response = client.post(url, headers=headers, json=data)
         response.raise_for_status()
         text = response.json()["choices"][0]["message"]["content"]
@@ -141,7 +173,7 @@ def _call_groq(prompt: str) -> dict:
 
 def _call_hf(prompt: str) -> dict:
     """Call Hugging Face Inference API using the chat completions format."""
-    url = f"https://api-inference.huggingface.co/models/{HF_MODEL}/v1/chat/completions"
+    url = "https://router.huggingface.co/v1/chat/completions"
     headers = {
         "Authorization": f"Bearer {settings.hf_api_key}",
         "Content-Type": "application/json"
@@ -152,7 +184,7 @@ def _call_hf(prompt: str) -> dict:
         "max_tokens": 1500,
         "stream": False,
     }
-    with httpx.Client(timeout=30.0) as client:
+    with httpx.Client(timeout=45.0) as client:
         response = client.post(url, headers=headers, json=data)
         response.raise_for_status()
         text = response.json()["choices"][0]["message"]["content"]
@@ -177,6 +209,25 @@ def _parse_response(text: str) -> dict:
                 pass
 
     raise ValueError("Failed to parse AI output into valid JSON")
+
+
+def _summarize_history(history: List[HistoricalPoint]) -> str:
+    """
+    Summarize 5 years of daily data (~1250 points) into ~50-60 points (weekly/monthly)
+    to stay well within LLM context limits and rate-limit TPM (Tokens Per Minute).
+    """
+    if not history:
+        return "No history available."
+    
+    # We want roughly 50 points. If 1250 total, step = 25.
+    step = max(len(history) // 50, 1)
+    sampled = history[::step]
+    
+    # Also ensure the very last (latest) point is included if not already
+    if history[-1].date != sampled[-1].date:
+        sampled.append(history[-1])
+        
+    return "\n".join([f"{p.date}: {p.close:.2f}" for p in sampled])
 
 
 def _fallback_analysis(last_error: str = "Unknown error") -> dict:

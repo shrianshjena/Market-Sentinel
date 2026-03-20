@@ -1,5 +1,6 @@
 import sys
 import os
+import asyncio
 
 # Add backend directory to Python path so existing modules are importable
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "backend"))
@@ -28,15 +29,23 @@ async def analyze(ticker: str):
     ticker = ticker.upper()
 
     try:
-        current_price, historical = fetch_stock_data(ticker)
-        news_context = fetch_stock_news(ticker)
-        fun_dict = fetch_stock_fundamentals(ticker)
+        # Step 1: Fetch data — all service calls are synchronous (httpx.Client) so we
+        # offload them to a thread pool to avoid blocking the async event loop.
+        current_price, historical = await asyncio.to_thread(fetch_stock_data, ticker)
+        news_context = await asyncio.to_thread(fetch_stock_news, ticker)
+        fun_dict = await asyncio.to_thread(fetch_stock_fundamentals, ticker)
         fundamentals = Fundamentals(**fun_dict)
-        
-        ai_result = analyze_stock(ticker, current_price, historical, news_context, fun_dict)
+
+        # Step 2: Get AI analysis with failovers (also blocking I/O — run in thread)
+        ai_result = await asyncio.to_thread(
+            analyze_stock, ticker, current_price, historical, news_context, fun_dict
+        )
+
+        # Step 3: Compute the Sentinel Score (5-Factor evenly weighted)
         score = compute_sentinel_score(historical, ai_result, fun_dict)
         category = classify(score)
 
+        # Step 4: Build standardized response
         analysis = Analysis(
             sentinel_score=score,
             score_category=category,
@@ -69,6 +78,7 @@ async def analyze(ticker: str):
 
 @app.get("/api/featured")
 async def featured_tickers():
+    """Return the list of featured tickers for the landing page."""
     return {
         "tickers": settings.FEATURED_TICKERS,
         "labels": settings.TICKER_LABELS,

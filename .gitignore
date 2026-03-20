@@ -23,3 +23,5 @@ backend/credentials/*.json
 
 # Build
 frontend/dist/
+
+.vercel
